@@ -1,0 +1,32 @@
+# Data artifacts (large)
+data/**
+!data/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# Notebooks / IDE
+.ipynb_checkpoints/
+.DS_Store
+.idea/
+.vscode/
+
+# Env
+.env
+.env.*
+
+# Local bootstrap tools (not part of the project)
+.tools/
+
+# Credentials
+credentials*
+*.pem
