@@ -4,6 +4,18 @@ Complete pitch-level **MLB** and **MiLB** Statcast data for insights, dashboards
 
 **Default season: 2026** (first-class). Pulls come from Baseball Savant CSV endpoints and land as Parquet under `data/`.
 
+## Layout (portfolio-friendly)
+
+| Path | Role |
+| --- | --- |
+| `notebooks/arsenal_optimization.ipynb` | **Start here** — hiring walkthrough: data → features → outcome model → optimize → example recommendations |
+| `src/pitch_dataset/arsenal.py` | All arsenal logic in one module (features, model, optimize, report) |
+| `src/pitch_dataset/cli.py` | `pull` / `sample` / `train-model` / `optimize` |
+| `reports/` | Example markdown recommendations (e.g. Cease) |
+| `models/outcome_model.joblib` | Trained demo artifact |
+
+Dataset plumbing (`pipeline`, `savant`, `storage`, `seasons`) stays separate from the arsenal story.
+
 ## Setup
 
 Requires [uv](https://docs.astral.sh/uv/) (ships its own Python — no Xcode CLT needed):
@@ -123,11 +135,13 @@ See `reports/example_cease.md`. Excerpt:
 Expected improvement: -0.004 xwOBA
 ```
 
-### Notebook
+### Notebook (recommended read order)
 
 ```bash
 uv run jupyter notebook notebooks/arsenal_optimization.ipynb
 ```
+
+Walkthrough: load pitches → build features → train/load outcome model → optimize one pitcher → print recommendations.
 
 ## Python API
 
@@ -143,7 +157,11 @@ minors = results[1].frame
 ```
 
 ```python
-from pitch_dataset.arsenal import load_outcome_model, optimize_pitcher, format_recommendation_report
+from pitch_dataset.arsenal import (
+    load_outcome_model,
+    optimize_pitcher,
+    format_recommendation_report,
+)
 from pitch_dataset.storage import read_pitches
 
 pitches = read_pitches("data/pitches_mlb_2026.parquet")

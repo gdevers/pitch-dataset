@@ -238,7 +238,7 @@ def _load_league_frames(args: argparse.Namespace):
 
 
 def _cmd_train(args: argparse.Namespace) -> int:
-    from pitch_dataset.arsenal.outcome import train_outcome_model
+    from pitch_dataset.arsenal import train_outcome_model
 
     pitches = _load_league_frames(args)
     model, metrics = train_outcome_model(
@@ -253,10 +253,12 @@ def _cmd_train(args: argparse.Namespace) -> int:
 
 
 def _cmd_optimize(args: argparse.Namespace) -> int:
-    from pitch_dataset.arsenal.optimize import optimize_pitcher, optimize_pitchers
-    from pitch_dataset.arsenal.outcome import load_outcome_model, train_outcome_model
-    from pitch_dataset.arsenal.report import (
+    from pitch_dataset.arsenal import (
         format_recommendation_report,
+        load_outcome_model,
+        optimize_pitcher,
+        optimize_pitchers,
+        train_outcome_model,
         write_recommendation_report,
     )
 
