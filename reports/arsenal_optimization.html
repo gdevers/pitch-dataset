@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pitch Arsenal Optimization — Dylan Cease</title>
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --fg: #1a1a1a;
+      --muted: #5c5c5c;
+      --line: #d8d8d4;
+      --accent: #1f4b99;
+      --good: #1f6b3a;
+      --bar-cur: #8a8a84;
+      --bar-rec: #1f4b99;
+      --card: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 15px/1.45 "IBM Plex Sans", "Segoe UI", sans-serif;
+      color: var(--fg);
+      background: var(--bg);
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+    }
+    h1 {
+      font: 600 28px/1.2 "IBM Plex Sans", sans-serif;
+      margin: 0 0 8px;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      font: 600 18px/1.3 "IBM Plex Sans", sans-serif;
+      margin: 36px 0 12px;
+    }
+    h3 {
+      font: 600 15px/1.3 "IBM Plex Sans", sans-serif;
+      margin: 24px 0 8px;
+    }
+    p, .meta { color: var(--muted); margin: 0 0 12px; }
+    .hero {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 20px 0 8px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 14px 16px;
+    }
+    .stat .v {
+      font: 600 20px/1.2 "IBM Plex Sans", sans-serif;
+      color: var(--good);
+    }
+    .stat .l {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .chart {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 16px 18px 12px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 88px 1fr 48px;
+      gap: 8px;
+      align-items: center;
+      margin: 8px 0;
+    }
+    .bars {
+      position: relative;
+      height: 28px;
+    }
+    .bar {
+      position: absolute;
+      left: 0;
+      height: 11px;
+      border-radius: 2px;
+    }
+    .bar.cur { top: 2px; background: var(--bar-cur); }
+    .bar.rec { bottom: 2px; background: var(--bar-rec); }
+    .axis {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .legend {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      margin-right: 6px;
+      vertical-align: -1px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    th {
+      background: #efefeb;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .neg { color: var(--good); }
+    .pos { color: var(--accent); }
+    ul.pair {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .caption {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .compare {
+      display: grid;
+      gap: 10px;
+    }
+    .cmp {
+      display: grid;
+      grid-template-columns: 140px 1fr 64px;
+      gap: 10px;
+      align-items: center;
+    }
+    .cmp .track {
+      height: 10px;
+      background: #e6e6e1;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .cmp .fill {
+      height: 100%;
+      background: var(--good);
+      border-radius: 2px;
+    }
+    @media (max-width: 720px) {
+      .hero { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Pitch Arsenal Optimization</h1>
+    <p class="meta">
+      Constrained optimal pitch-type mix minimizing predicted pitch-level xwOBA.
+      Trained/scored on MLB 2026-04-01 → 2026-05-15 (n=175,759).
+    </p>
+
+    <h2>Dylan Cease · overall expected xwOBA −0.006</h2>
+    <div class="hero">
+      <div class="stat">
+        <div class="v">0.289 → 0.283</div>
+        <div class="l">Expected xwOBA</div>
+      </div>
+      <div class="stat">
+        <div class="v">−0.0056</div>
+        <div class="l">ΔxwOBA (lower is better)</div>
+      </div>
+      <div class="stat">
+        <div class="v">+0.0052 → +0.0029</div>
+        <div class="l">Expected RV / pitch</div>
+      </div>
+      <div class="stat">
+        <div class="v">814</div>
+        <div class="l">Pitches modeled</div>
+      </div>
+    </div>
+
+    <h3>Current vs recommended usage % (volume-weighted overall)</h3>
+    <div class="chart">
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--bar-cur)"></span>Current</span>
+        <span><span class="swatch" style="background:var(--bar-rec)"></span>Recommended</span>
+      </div>
+      <!-- max axis 40% for readability -->
+      <div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar cur" style="width:90.25%"></div><div class="bar rec" style="width:52.75%"></div></div><div>36→21</div></div>
+      <div class="row"><div>SL · Slider</div><div class="bars"><div class="bar cur" style="width:71.25%"></div><div class="bar rec" style="width:65.25%"></div></div><div>29→26</div></div>
+      <div class="row"><div>CH · Change</div><div class="bars"><div class="bar cur" style="width:29%"></div><div class="bar rec" style="width:50.5%"></div></div><div>12→20</div></div>
+      <div class="row"><div>KC · KnCurve</div><div class="bars"><div class="bar cur" style="width:21.5%"></div><div class="bar rec" style="width:43%"></div></div><div>9→17</div></div>
+      <div class="row"><div>ST · Sweeper</div><div class="bars"><div class="bar cur" style="width:15%"></div><div class="bar rec" style="width:31%"></div></div><div>6→12</div></div>
+      <div class="row"><div>SI · Sinker</div><div class="bars"><div class="bar cur" style="width:23%"></div><div class="bar rec" style="width:7.5%"></div></div><div>9→3</div></div>
+      <div class="axis"><span>Pitch type</span><span>Usage share (bar scale 0–40%)</span></div>
+      <p class="caption">Source: pitch-dataset outcome model · MLB 2026-04-01→05-15 · max shift ±15 pp · reports/example_cease.md</p>
+    </div>
+
+    <h3>Usage deltas (overall)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Pitch</th>
+          <th>Current %</th>
+          <th>Recommended %</th>
+          <th>Δ usage</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>FF · 4-Seam</td><td>36.1</td><td>21.1</td><td class="neg">−15.0 pp</td></tr>
+        <tr><td>CH · Changeup</td><td>11.6</td><td>20.2</td><td class="pos">+8.6 pp</td></tr>
+        <tr><td>KC · Knuckle Curve</td><td>8.6</td><td>17.2</td><td class="pos">+8.6 pp</td></tr>
+        <tr><td>ST · Sweeper</td><td>6.0</td><td>12.4</td><td class="pos">+6.4 pp</td></tr>
+        <tr><td>SI · Sinker</td><td>9.2</td><td>3.0</td><td class="neg">−6.2 pp</td></tr>
+        <tr><td>SL · Slider</td><td>28.5</td><td>26.1</td><td>−2.4 pp</td></tr>
+      </tbody>
+    </table>
+    <p class="caption">Platoon detail: vs LHH increase CH/KC, cut FF/SL; vs RHH increase ST/SL, cut FF/SI. See markdown reports for count-state splits.</p>
+
+    <h3>Arsenal pairing context (≥5 pp shifts)</h3>
+    <ul class="pair">
+      <li>CH vs primary FF: velo sep 13.2 mph, move sep 0.6 in, release strong tunnel (0.10 ft)</li>
+      <li>KC vs primary FF: velo sep 15.2 mph, move sep 2.8 in, release strong tunnel (0.08 ft)</li>
+      <li>ST vs primary FF: velo sep 13.7 mph, move sep 2.6 in, release moderate tunnel (0.41 ft)</li>
+      <li>SI vs primary FF: velo sep 1.6 mph, move sep 0.8 in, release strong tunnel (0.17 ft)</li>
+    </ul>
+
+    <h2>Top-3 by modeled volume · expected ΔxwOBA</h2>
+    <div class="chart compare">
+      <div class="cmp">
+        <div>Dylan Cease</div>
+        <div class="track"><div class="fill" style="width:100%"></div></div>
+        <div class="neg">−0.0056</div>
+      </div>
+      <div class="cmp">
+        <div>Shane Baz</div>
+        <div class="track"><div class="fill" style="width:73%"></div></div>
+        <div class="neg">−0.0041</div>
+      </div>
+      <div class="cmp">
+        <div>Cam Schlittler</div>
+        <div class="track"><div class="fill" style="width:30%"></div></div>
+        <div class="neg">−0.0017</div>
+      </div>
+      <p class="caption">Source: same model cohort · reports/example_top3.md · bar length scaled to |ΔxwOBA|</p>
+    </div>
+  </main>
+</body>
+</html>

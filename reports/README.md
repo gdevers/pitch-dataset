@@ -9,3 +9,10 @@ uv run pitch-dataset optimize --top 3 --report reports/example_top3.md
 ```
 
 Training window: MLB 2026-04-01 → 2026-05-15.
+
+| File | Contents |
+| --- | --- |
+| `example_cease.md` | Dylan Cease recommendation write-up |
+| `example_schlittler.md` | Cam Schlittler recommendation write-up |
+| `example_top3.md` | Top-3 by pitch volume |
+| `arsenal_optimization.html` | Static visual summary (Cease headline + top-3 ΔxwOBA) — open in a browser |
