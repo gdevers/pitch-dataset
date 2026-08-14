@@ -1,86 +1,92 @@
 # Pitch Arsenal Optimization Report
 
-_Trained/scored on MLB 2026 pitches (2026-04-01 → 2026-05-15, n=175,759). Parquet data is local/gitignored; model artifact may be committed._
+_Trained/scored on MLB 2026 pitches (2026-03-25 → 2026-08-13, n=491,230). Parquet data is local/gitignored; model artifact may be committed._
 
 Recommendations compare **actual usage** to a constrained optimal mix that minimizes predicted pitch-level xwOBA (lower is better for the pitcher), holding location/count/TTO/context fixed and only reallocating pitch-type share.
 
 ## Schlittler, Cam (MLBAM 693645)
 
-- Pitches modeled: **804**
+- Pitches modeled: **2,083**
 - Arsenal: FF, FC, SI, CU
-- Overall expected xwOBA: 0.269 → 0.267 (improvement **-0.002**)
-- Overall expected RV/pitch: -0.0027 → -0.0034 (-0.0007)
+- Overall expected xwOBA: 0.275 → 0.273 (improvement **-0.002**)
+- Overall expected RV/pitch: -0.0010 → -0.0012 (-0.0002)
 
 ### Platoon usage
 
 #### vs LHH
 
-Expected improvement: **-0.002 xwOBA** (0.272 → 0.270); n=522
+Expected improvement: **-0.002 xwOBA** (0.278 → 0.276); n=1343
 
-- INCREASE **CU** usage from 9% → 24%
-- REDUCE **FF** usage from 55% → 40%
-- REDUCE **SI** usage from 11% → 3%
-- INCREASE **FC** usage from 25% → 32%
+- REDUCE **FF** usage from 49% → 34%
+- INCREASE **CU** usage from 11% → 26%
+- INCREASE **FC** usage from 26% → 37%
+- REDUCE **SI** usage from 14% → 3%
 
 #### vs RHH
 
-Expected improvement: **-0.001 xwOBA** (0.262 → 0.261); n=282
+Expected improvement: **-0.001 xwOBA** (0.269 → 0.267); n=740
 
-- INCREASE **FC** usage from 31% → 46%
-- REDUCE **SI** usage from 35% → 20%
+- REDUCE **SI** usage from 33% → 18%
+- INCREASE **FC** usage from 26% → 41%
 
 ### Count / situation detail
 
-**vs RHH | ahead_pit** (97 pitches)
+**vs LHH | full** (76 pitches)
 
-Expected improvement: **-0.001 xwOBA** (0.267 → 0.266); n=97
+Expected improvement: **-0.004 xwOBA** (0.323 → 0.320); n=76
 
-- INCREASE **FC** usage from 29% → 44%
-- REDUCE **SI** usage from 32% → 17%
+- REDUCE **FF** usage from 43% → 28%
+- INCREASE **CU** usage from 9% → 24%
+- INCREASE **FC** usage from 30% → 44%
+- REDUCE **SI** usage from 17% → 3%
 
-**vs LHH | ahead_pit** (175 pitches)
+**vs LHH | even** (322 pitches)
 
-Expected improvement: **-0.001 xwOBA** (0.289 → 0.288); n=175
+Expected improvement: **-0.003 xwOBA** (0.275 → 0.272); n=322
 
-- REDUCE **FF** usage from 55% → 40%
-- INCREASE **CU** usage from 17% → 32%
-- INCREASE **FC** usage from 22% → 26%
-- REDUCE **SI** usage from 6% → 3%
+- REDUCE **FF** usage from 42% → 27%
+- INCREASE **CU** usage from 10% → 25%
+- INCREASE **FC** usage from 31% → 45%
+- REDUCE **SI** usage from 17% → 3%
 
-**vs LHH | even** (109 pitches)
+**vs RHH | even** (171 pitches)
 
-Expected improvement: **-0.001 xwOBA** (0.256 → 0.255); n=109
+Expected improvement: **-0.002 xwOBA** (0.278 → 0.276); n=171
 
-- INCREASE **FC** usage from 29% → 44%
-- REDUCE **SI** usage from 14% → 3%
-- REDUCE **FF** usage from 53% → 49%
+- REDUCE **SI** usage from 33% → 18%
+- INCREASE **CU** usage from 6% → 21%
+- REDUCE **FF** usage from 28% → 13%
+- INCREASE **FC** usage from 33% → 48%
 
-**vs LHH | ahead_hit** (77 pitches)
+**vs LHH | 0-0** (332 pitches)
 
-Expected improvement: **-0.001 xwOBA** (0.258 → 0.257); n=77
+Expected improvement: **-0.002 xwOBA** (0.272 → 0.270); n=332
 
-- INCREASE **FC** usage from 34% → 49%
-- REDUCE **SI** usage from 16% → 3%
-- REDUCE **FF** usage from 51% → 48%
+- INCREASE **CU** usage from 11% → 26%
+- REDUCE **FF** usage from 56% → 41%
+- REDUCE **SI** usage from 13% → 3%
+- INCREASE **FC** usage from 20% → 30%
 
-**vs RHH | 0-0** (79 pitches)
+**vs LHH | ahead_pit** (423 pitches)
 
-Expected improvement: **-0.001 xwOBA** (0.246 → 0.245); n=79
+Expected improvement: **-0.002 xwOBA** (0.291 → 0.289); n=423
 
-- INCREASE **FC** usage from 22% → 37%
-- REDUCE **SI** usage from 42% → 27%
+- INCREASE **CU** usage from 16% → 31%
+- REDUCE **FF** usage from 53% → 38%
+- INCREASE **FC** usage from 21% → 28%
+- REDUCE **SI** usage from 10% → 3%
 
-**vs LHH | 0-0** (129 pitches)
+**vs RHH | ahead_pit** (229 pitches)
 
-Expected improvement: **-0.001 xwOBA** (0.272 → 0.271); n=129
+Expected improvement: **-0.002 xwOBA** (0.280 → 0.279); n=229
 
-- REDUCE **FF** usage from 64% → 49%
-- INCREASE **CU** usage from 12% → 27%
-- INCREASE **FC** usage from 16% → 22%
-- REDUCE **SI** usage from 9% → 3%
+- REDUCE **SI** usage from 27% → 12%
+- INCREASE **CU** usage from 5% → 20%
+- INCREASE **FF** usage from 41% → 55%
+- REDUCE **FC** usage from 27% → 13%
 
 ### Arsenal pairing signals
 
-- FC vs primary FF: velo sep 3.9 mph, move sep 1.1 in, release strong tunnel (0.11 ft)
-- SI vs primary FF: velo sep 0.6 mph, move sep 0.9 in, release strong tunnel (0.04 ft)
-- CU vs primary FF: velo sep 13.4 mph, move sep 2.5 in, release strong tunnel (0.09 ft)
+- FC vs primary FF: velo sep 3.3 mph, move sep 1.1 in, release strong tunnel (0.09 ft)
+- SI vs primary FF: velo sep 0.2 mph, move sep 0.9 in, release strong tunnel (0.06 ft)
+- CU vs primary FF: velo sep 11.8 mph, move sep 2.4 in, release strong tunnel (0.10 ft)

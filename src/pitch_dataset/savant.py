@@ -110,6 +110,9 @@ def make_client(timeout: float = 120.0) -> httpx.Client:
         headers={"User-Agent": USER_AGENT, "Accept": "text/csv,*/*"},
         timeout=timeout,
         follow_redirects=True,
+        # Savant may drop a long-lived CSV connection during season-scale pulls.
+        # Reconnect between chunks instead of reusing a stale keep-alive socket.
+        limits=httpx.Limits(max_keepalive_connections=0),
     )
 
 

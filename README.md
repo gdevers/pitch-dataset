@@ -60,8 +60,8 @@ uv run pitch-dataset pull --league mlb --season 2026
 # Minors only (AAA + A by default)
 uv run pitch-dataset pull --league minors --season 2026
 
-# Custom range (what the demo model used)
-uv run pitch-dataset pull --league mlb --season 2026 --start 2026-04-01 --end 2026-05-15
+# Explicit season-to-date window (same as default clamp-to-today)
+uv run pitch-dataset pull --league mlb --season 2026 --start 2026-03-20 --end 2026-08-14
 
 # Custom MiLB levels
 uv run pitch-dataset pull --league minors --levels AAA,A
@@ -91,10 +91,10 @@ Context includes platoon (`p_throws`/`stand`), count, zone/location, times-throu
 The committed example reports and `models/outcome_model.joblib` were trained on:
 
 - **League:** MLB
-- **Dates:** 2026-04-01 → 2026-05-15
-- **Sample size:** ~175,759 pitches (~175k after pitch-type filters)
+- **Dates:** 2026-03-25 → 2026-08-13 (season-to-date; pull window 2026-03-20 → 2026-08-14)
+- **Sample size:** 491,230 pitches (~489k after pitch-type filters used in training)
 
-Parquet files stay gitignored under `data/`. Re-pull the same window to reproduce locally.
+Parquet files stay gitignored under `data/`. Re-pull the season-to-date window to reproduce locally.
 
 ### Train
 
@@ -125,7 +125,7 @@ uv run pitch-dataset optimize --top 3 --train-if-missing --report reports/exampl
 
 ### Limitations
 
-- Early-season samples are noisy; treat deltas as directional, not precise WAR.
+- Season-to-date samples are still noisy; treat deltas as directional, not precise WAR.
 - Holds **location** and game state fixed — only reallocates pitch-type share.
 - Pitch-level xwOBA for takes/whiffs is a heuristic mapping; BIP uses Savant `estimated_woba_using_speedangle` when present.
 - No explicit game-planning, catcher, or health constraints.
@@ -137,12 +137,12 @@ Interactive visual: [`reports/arsenal_optimization.html`](reports/arsenal_optimi
 
 ```text
 ## Cease, Dylan (MLBAM 656302)
-- Overall expected xwOBA: 0.289 → 0.283 (improvement -0.006)
+- Overall expected xwOBA: 0.286 → 0.280 (improvement -0.006)
 
 #### vs LHH
-- INCREASE CH usage from 20% → 35%
-- REDUCE SL usage from 23% → 11%
-Expected improvement: -0.004 xwOBA
+- INCREASE SL usage from 24% → 39%
+- INCREASE KC usage from 12% → 27%
+Expected improvement: -0.005 xwOBA
 ```
 
 ### Notebook (recommended read order)

@@ -100,7 +100,6 @@
       gap: 16px;
       font-size: 12px;
       color: var(--muted);
-      margin-bottom: 8px;
     }
     .swatch {
       display: inline-block;
@@ -150,7 +149,7 @@
     }
     .cmp {
       display: grid;
-      grid-template-columns: 140px 1fr 64px;
+      grid-template-columns: 160px 1fr 72px;
       gap: 10px;
       align-items: center;
     }
@@ -175,25 +174,25 @@
     <h1>Pitch Arsenal Optimization</h1>
     <p class="meta">
       Constrained optimal pitch-type mix minimizing predicted pitch-level xwOBA.
-      Trained/scored on MLB 2026-04-01 → 2026-05-15 (n=175,759).
+      Trained/scored on MLB 2026-03-25 → 2026-08-13 (n=491,230).
     </p>
 
     <h2>Dylan Cease · overall expected xwOBA −0.006</h2>
     <div class="hero">
       <div class="stat">
-        <div class="v">0.289 → 0.283</div>
+        <div class="v">0.286 → 0.280</div>
         <div class="l">Expected xwOBA</div>
       </div>
       <div class="stat">
-        <div class="v">−0.0056</div>
+        <div class="v">−0.0063</div>
         <div class="l">ΔxwOBA (lower is better)</div>
       </div>
       <div class="stat">
-        <div class="v">+0.0052 → +0.0029</div>
+        <div class="v">+0.0057 → +0.0036</div>
         <div class="l">Expected RV / pitch</div>
       </div>
       <div class="stat">
-        <div class="v">814</div>
+        <div class="v">2,069</div>
         <div class="l">Pitches modeled</div>
       </div>
     </div>
@@ -205,14 +204,14 @@
         <span><span class="swatch" style="background:var(--bar-rec)"></span>Recommended</span>
       </div>
       <!-- max axis 40% for readability -->
-      <div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar cur" style="width:90.25%"></div><div class="bar rec" style="width:52.75%"></div></div><div>36→21</div></div>
-      <div class="row"><div>SL · Slider</div><div class="bars"><div class="bar cur" style="width:71.25%"></div><div class="bar rec" style="width:65.25%"></div></div><div>29→26</div></div>
-      <div class="row"><div>CH · Change</div><div class="bars"><div class="bar cur" style="width:29%"></div><div class="bar rec" style="width:50.5%"></div></div><div>12→20</div></div>
-      <div class="row"><div>KC · KnCurve</div><div class="bars"><div class="bar cur" style="width:21.5%"></div><div class="bar rec" style="width:43%"></div></div><div>9→17</div></div>
-      <div class="row"><div>ST · Sweeper</div><div class="bars"><div class="bar cur" style="width:15%"></div><div class="bar rec" style="width:31%"></div></div><div>6→12</div></div>
-      <div class="row"><div>SI · Sinker</div><div class="bars"><div class="bar cur" style="width:23%"></div><div class="bar rec" style="width:7.5%"></div></div><div>9→3</div></div>
+      <div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar cur" style="width:91.25%"></div><div class="bar rec" style="width:53.75%"></div></div><div>36→22</div></div>
+      <div class="row"><div>KC · KnCurve</div><div class="bars"><div class="bar cur" style="width:23.75%"></div><div class="bar rec" style="width:61.25%"></div></div><div>10→24</div></div>
+      <div class="row"><div>CH · Change</div><div class="bars"><div class="bar cur" style="width:28.25%"></div><div class="bar rec" style="width:10.25%"></div></div><div>11→4</div></div>
+      <div class="row"><div>SL · Slider</div><div class="bars"><div class="bar cur" style="width:74.50%"></div><div class="bar rec" style="width:90.50%"></div></div><div>30→36</div></div>
+      <div class="row"><div>ST · Sweeper</div><div class="bars"><div class="bar cur" style="width:10.75%"></div><div class="bar rec" style="width:26.50%"></div></div><div>4→11</div></div>
+      <div class="row"><div>SI · Sinker</div><div class="bars"><div class="bar cur" style="width:21.50%"></div><div class="bar rec" style="width:7.50%"></div></div><div>9→3</div></div>
       <div class="axis"><span>Pitch type</span><span>Usage share (bar scale 0–40%)</span></div>
-      <p class="caption">Source: pitch-dataset outcome model · MLB 2026-04-01→05-15 · max shift ±15 pp · reports/example_cease.md</p>
+      <p class="caption">Source: pitch-dataset outcome model · MLB 2026-03-25→08-13 · max shift ±15 pp · reports/example_cease.md</p>
     </div>
 
     <h3>Usage deltas (overall)</h3>
@@ -226,40 +225,41 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td>FF · 4-Seam</td><td>36.1</td><td>21.1</td><td class="neg">−15.0 pp</td></tr>
-        <tr><td>CH · Changeup</td><td>11.6</td><td>20.2</td><td class="pos">+8.6 pp</td></tr>
-        <tr><td>KC · Knuckle Curve</td><td>8.6</td><td>17.2</td><td class="pos">+8.6 pp</td></tr>
-        <tr><td>ST · Sweeper</td><td>6.0</td><td>12.4</td><td class="pos">+6.4 pp</td></tr>
-        <tr><td>SI · Sinker</td><td>9.2</td><td>3.0</td><td class="neg">−6.2 pp</td></tr>
-        <tr><td>SL · Slider</td><td>28.5</td><td>26.1</td><td>−2.4 pp</td></tr>
+        <tr><td>FF · 4-Seam</td><td>36.5</td><td>21.5</td><td class="neg">−15.0 pp</td></tr>
+        <tr><td>KC · Knuckle Curve</td><td>9.5</td><td>24.5</td><td class="pos">+15.0 pp</td></tr>
+        <tr><td>CH · Changeup</td><td>11.3</td><td>4.1</td><td class="neg">−7.1 pp</td></tr>
+        <tr><td>SL · Slider</td><td>29.8</td><td>36.2</td><td class="pos">+6.4 pp</td></tr>
+        <tr><td>ST · Sweeper</td><td>4.3</td><td>10.6</td><td class="pos">+6.3 pp</td></tr>
+        <tr><td>SI · Sinker</td><td>8.6</td><td>3.0</td><td class="neg">−5.6 pp</td></tr>
       </tbody>
     </table>
-    <p class="caption">Platoon detail: vs LHH increase CH/KC, cut FF/SL; vs RHH increase ST/SL, cut FF/SI. See markdown reports for count-state splits.</p>
+    <p class="caption">Platoon detail: vs LHH increase SL/KC, cut FF/CH; vs RHH increase ST/KC, cut FF/SI. See markdown reports for count-state splits.</p>
 
     <h3>Arsenal pairing context (≥5 pp shifts)</h3>
     <ul class="pair">
-      <li>CH vs primary FF: velo sep 13.2 mph, move sep 0.6 in, release strong tunnel (0.10 ft)</li>
-      <li>KC vs primary FF: velo sep 15.2 mph, move sep 2.8 in, release strong tunnel (0.08 ft)</li>
-      <li>ST vs primary FF: velo sep 13.7 mph, move sep 2.6 in, release moderate tunnel (0.41 ft)</li>
-      <li>SI vs primary FF: velo sep 1.6 mph, move sep 0.8 in, release strong tunnel (0.17 ft)</li>
+      <li>SL vs primary FF: velo sep 8.3 mph, move sep 1.3 in, release strong tunnel (0.15 ft)</li>
+      <li>CH vs primary FF: velo sep 15.0 mph, move sep 0.5 in, release strong tunnel (0.10 ft)</li>
+      <li>KC vs primary FF: velo sep 15.0 mph, move sep 2.7 in, release strong tunnel (0.06 ft)</li>
+      <li>SI vs primary FF: velo sep 1.3 mph, move sep 0.8 in, release strong tunnel (0.16 ft)</li>
+      <li>ST vs primary FF: velo sep 13.7 mph, move sep 2.6 in, release moderate tunnel (0.38 ft)</li>
     </ul>
 
     <h2>Top-3 by modeled volume · expected ΔxwOBA</h2>
     <div class="chart compare">
       <div class="cmp">
-        <div>Dylan Cease</div>
+        <div>Sandy Alcantara</div>
         <div class="track"><div class="fill" style="width:100%"></div></div>
-        <div class="neg">−0.0056</div>
+        <div class="neg">−0.0073</div>
       </div>
       <div class="cmp">
-        <div>Shane Baz</div>
-        <div class="track"><div class="fill" style="width:73%"></div></div>
-        <div class="neg">−0.0041</div>
+        <div>Cristopher Sánchez</div>
+        <div class="track"><div class="fill" style="width:59%"></div></div>
+        <div class="neg">−0.0043</div>
       </div>
       <div class="cmp">
-        <div>Cam Schlittler</div>
-        <div class="track"><div class="fill" style="width:30%"></div></div>
-        <div class="neg">−0.0017</div>
+        <div>Kevin Gausman</div>
+        <div class="track"><div class="fill" style="width:55%"></div></div>
+        <div class="neg">−0.0040</div>
       </div>
       <p class="caption">Source: same model cohort · reports/example_top3.md · bar length scaled to |ΔxwOBA|</p>
     </div>

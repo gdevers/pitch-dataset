@@ -8,7 +8,7 @@ uv run pitch-dataset optimize --pitcher Cease --report reports/example_cease.md
 uv run pitch-dataset optimize --top 3 --report reports/example_top3.md
 ```
 
-Training window: MLB 2026-04-01 → 2026-05-15.
+Training window: MLB 2026-03-25 → 2026-08-13 (season-to-date; n=491,230).
 
 | File | Contents |
 | --- | --- |
