@@ -4,6 +4,15 @@ Complete pitch-level **MLB** and **MiLB** Statcast data for insights, dashboards
 
 **Default season: 2026** (first-class). Pulls come from Baseball Savant CSV endpoints and land as Parquet under `data/`.
 
+## View the visual
+
+Open the static arsenal optimization summary (Cease headline + top-3 ΔxwOBA):
+
+- **In a clone:** open [`reports/arsenal_optimization.html`](reports/arsenal_optimization.html) in your browser (double-click or `open reports/arsenal_optimization.html` on macOS).
+- **On GitHub:** [blob view](https://github.com/gdevers/pitch-dataset/blob/main/reports/arsenal_optimization.html) shows source; GitHub’s HTML preview does **not** run the page JS well. Prefer local open, or GitHub Pages if enabled for this private repo (Pro/Team required for private Pages).
+
+Also listed under [`reports/`](reports/README.md).
+
 ## Layout (portfolio-friendly)
 
 | Path | Role |
@@ -11,6 +20,7 @@ Complete pitch-level **MLB** and **MiLB** Statcast data for insights, dashboards
 | `notebooks/arsenal_optimization.ipynb` | **Start here** — hiring walkthrough: data → features → outcome model → optimize → example recommendations |
 | `src/pitch_dataset/arsenal.py` | All arsenal logic in one module (features, model, optimize, report) |
 | `src/pitch_dataset/cli.py` | `pull` / `sample` / `train-model` / `optimize` |
+| `reports/arsenal_optimization.html` | **Interactive visual** — open in a browser |
 | `reports/` | Example markdown recommendations (e.g. Cease) |
 | `models/outcome_model.joblib` | Trained demo artifact |
 
@@ -123,7 +133,7 @@ uv run pitch-dataset optimize --top 3 --train-if-missing --report reports/exampl
 
 ### Example output
 
-See `reports/example_cease.md`. Excerpt:
+Interactive visual: [`reports/arsenal_optimization.html`](reports/arsenal_optimization.html). Write-up: `reports/example_cease.md`. Excerpt:
 
 ```text
 ## Cease, Dylan (MLBAM 656302)
