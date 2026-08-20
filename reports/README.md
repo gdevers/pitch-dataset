@@ -16,5 +16,5 @@ Training window: MLB 2026-03-25 → 2026-08-13 (season-to-date; n=491,230).
 | `example_schlittler.md` | Cam Schlittler recommendation write-up |
 | `example_top3.md` | Top-3 by pitch volume |
 | `arsenal_optimization.html` | Static visual summary (Cease headline + top-3 ΔxwOBA) — open in a browser |
-| `traded_pitchers.md` | Top-5 deadline arms pre/post usage, shape, pairing/tunnel |
-| `traded_pitchers.html` | Self-contained visual for traded deadline analysis |
+| `traded_pitchers.md` | Top-5 deadline arms pre/post usage, full shape metrics, extended pairing/tunnel |
+| `traded_pitchers.html` | Self-contained visual with shape + pairing pre/post deltas |

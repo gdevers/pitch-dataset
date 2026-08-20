@@ -141,7 +141,7 @@ uv run pitch-dataset optimize --top 3 --train-if-missing --report reports/exampl
 
 ### Traded deadline analysis
 
-Pre/post splits for headline deadline arms (usage mix, Statcast shape, pairing/tunnel):
+Pre/post splits for headline deadline arms (usage mix, full Statcast shape metrics, extended pairing/tunnel vs primary):
 
 ```bash
 # Default top-5: Skubal, Gausman, Soriano, Mize, Peralta
@@ -151,7 +151,7 @@ uv run pitch-dataset traded
 uv run pitch-dataset traded --pitchers skubal,gausman --report reports/traded_pitchers.md --html reports/traded_pitchers.html
 ```
 
-Outputs: `reports/traded_pitchers.md`, `reports/traded_pitchers.html`. Team affiliation is derived from `inning_topbot` + home/away; post-trade samples are partial through the data end date.
+Outputs: `reports/traded_pitchers.md`, `reports/traded_pitchers.html` (full shape + pairing pre/post deltas). Interactive canvas: [`traded-pitchers.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers.canvas.tsx). Copy to Downloads: `cp reports/traded_pitchers.html ~/Downloads/traded-pitchers-visual.html`. Team affiliation is derived from `inning_topbot` + home/away; post-trade samples are partial through the data end date.
 
 ### Example output
 

@@ -462,17 +462,17 @@ def pairing_note_for_type(
         f"velo sep {feats['pair_velo_sep']:.1f} mph",
         f"move sep {feats['pair_mov_sep']:.1f} in",
     ]
-    if feats["pair_eff_speed_sep"]:
+    if pd.notna(feats["pair_eff_speed_sep"]) and feats["pair_eff_speed_sep"]:
         details.append(f"eff speed sep {feats['pair_eff_speed_sep']:.1f} mph")
-    if feats["pair_spin_sep"]:
+    if pd.notna(feats["pair_spin_sep"]) and feats["pair_spin_sep"]:
         details.append(f"spin sep {feats['pair_spin_sep']:.0f} rpm")
-    if feats["pair_spin_axis_sep"]:
+    if pd.notna(feats["pair_spin_axis_sep"]) and feats["pair_spin_axis_sep"]:
         details.append(f"spin axis sep {feats['pair_spin_axis_sep']:.0f}°")
-    if feats["pair_arm_sep"]:
+    if pd.notna(feats["pair_arm_sep"]) and feats["pair_arm_sep"]:
         details.append(f"arm angle sep {feats['pair_arm_sep']:.1f}°")
-    if feats["pair_extension_sep"]:
+    if pd.notna(feats["pair_extension_sep"]) and feats["pair_extension_sep"]:
         details.append(f"extension sep {feats['pair_extension_sep']:.2f} ft")
-    if feats["pair_break_sep"]:
+    if pd.notna(feats["pair_break_sep"]) and feats["pair_break_sep"]:
         details.append(f"API break sep {feats['pair_break_sep']:.1f} in")
     details.append(f"release {tunnel} ({rel:.2f} ft)")
     return f"{header}: {', '.join(details)}"

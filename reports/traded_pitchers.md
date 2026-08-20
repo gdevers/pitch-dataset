@@ -2,7 +2,7 @@
 
 _MLB 2026 pitches (2026-03-25 → 2026-08-13, n=491,230). Team affiliation derived from `inning_topbot` + home/away. Post-trade samples are partial through data end date._
 
-Pre/post splits use **trade date** cutoffs and **pitcher team** derived from `inning_topbot` + home/away. Shape metrics include arm angle, release point, Pairing/tunnel notes reuse extended separation logic from `arsenal.py` (velo/movement, effective speed, spin, arm angle, extension, API break, 3D release distance).
+Pre/post splits use **trade date** cutoffs and **pitcher team** derived from `inning_topbot` + home/away. Shape metrics cover arm angle, spin, extension, effective speed, release point, movement, and API break. Pairing/tunnel notes reuse extended separation logic from `arsenal.py` (velo/movement, effective speed, spin, arm angle, extension, API break, 3D release distance).
 
 ## Tarik Skubal (DET → LAD)
 
@@ -26,16 +26,16 @@ Pre/post splits use **trade date** cutoffs and **pitcher team** derived from `in
 Primary pitch shifted **FF → SI** post-trade.
 
 **Pre-trade**
-- CH vs primary FF:, velo sep 9.4 mph, move sep 1.3 in, eff speed sep 9.7 mph, spin sep 499 rpm, spin axis sep 21°, arm angle sep 8.8°, extension sep 0.09 ft, API break sep 1.9 in, release distinct release (0.50 ft)
-- SI vs primary FF:, velo sep 0.0 mph, move sep 0.9 in, eff speed sep 0.1 mph, spin sep 133 rpm, spin axis sep 5°, arm angle sep 3.7°, extension sep 0.02 ft, API break sep 1.0 in, release strong tunnel (0.19 ft)
-- SL vs primary FF:, velo sep 7.4 mph, move sep 1.2 in, eff speed sep 7.1 mph, spin sep 102 rpm, spin axis sep 39°, arm angle sep 5.5°, extension sep 0.01 ft, API break sep 1.7 in, release distinct release (0.50 ft)
-- CU vs primary FF:, velo sep 16.5 mph, move sep 2.1 in, eff speed sep 16.4 mph, spin sep 208 rpm, spin axis sep 166°, arm angle sep 0.4°, extension sep 0.02 ft, API break sep 3.2 in, release strong tunnel (0.19 ft)
+- CH vs primary FF: velo sep 9.4 mph, move sep 1.3 in, eff speed sep 9.7 mph, spin sep 499 rpm, spin axis sep 21°, arm angle sep 8.8°, extension sep 0.09 ft, API break sep 1.9 in, release distinct release (0.50 ft)
+- SI vs primary FF: velo sep 0.0 mph, move sep 0.9 in, eff speed sep 0.1 mph, spin sep 133 rpm, spin axis sep 5°, arm angle sep 3.7°, extension sep 0.02 ft, API break sep 1.0 in, release strong tunnel (0.19 ft)
+- SL vs primary FF: velo sep 7.4 mph, move sep 1.2 in, eff speed sep 7.1 mph, spin sep 102 rpm, spin axis sep 39°, arm angle sep 5.5°, extension sep 0.01 ft, API break sep 1.7 in, release distinct release (0.50 ft)
+- CU vs primary FF: velo sep 16.5 mph, move sep 2.1 in, eff speed sep 16.4 mph, spin sep 208 rpm, spin axis sep 166°, arm angle sep 0.4°, extension sep 0.02 ft, API break sep 3.2 in, release strong tunnel (0.19 ft)
 
 **Post-trade**
-- CH vs primary SI:, velo sep 9.1 mph, move sep 0.6 in, eff speed sep 9.3 mph, spin sep 318 rpm, spin axis sep 21°, arm angle sep 6.3°, extension sep 0.06 ft, API break sep 1.2 in, release moderate tunnel (0.40 ft)
-- FF vs primary SI:, velo sep 0.3 mph, move sep 0.9 in, eff speed sep 0.3 mph, spin sep 122 rpm, spin axis sep 2°, arm angle sep 3.5°, extension sep 0.04 ft, API break sep 0.9 in, release strong tunnel (0.20 ft)
-- SL vs primary SI:, velo sep 6.4 mph, move sep 1.4 in, eff speed sep 6.1 mph, spin sep 30 rpm, spin axis sep 14°, arm angle sep 2.4°, extension sep 0.03 ft, API break sep 1.6 in, release moderate tunnel (0.32 ft)
-- CU vs primary SI:, velo sep 16.4 mph, move sep 2.2 in, eff speed sep 16.4 mph, spin sep 335 rpm, spin axis sep 164°, arm angle sep 3.7°, extension sep 0.00 ft, API break sep 3.0 in, release strong tunnel (0.10 ft)
+- CH vs primary SI: velo sep 9.1 mph, move sep 0.6 in, eff speed sep 9.3 mph, spin sep 318 rpm, spin axis sep 21°, arm angle sep 6.3°, extension sep 0.06 ft, API break sep 1.2 in, release moderate tunnel (0.40 ft)
+- FF vs primary SI: velo sep 0.3 mph, move sep 0.9 in, eff speed sep 0.3 mph, spin sep 122 rpm, spin axis sep 2°, arm angle sep 3.5°, extension sep 0.04 ft, API break sep 0.9 in, release strong tunnel (0.20 ft)
+- SL vs primary SI: velo sep 6.4 mph, move sep 1.4 in, eff speed sep 6.1 mph, spin sep 30 rpm, spin axis sep 14°, arm angle sep 2.4°, extension sep 0.03 ft, API break sep 1.6 in, release moderate tunnel (0.32 ft)
+- CU vs primary SI: velo sep 16.4 mph, move sep 2.2 in, eff speed sep 16.4 mph, spin sep 335 rpm, spin axis sep 164°, arm angle sep 3.7°, extension sep 0.00 ft, API break sep 3.0 in, release strong tunnel (0.10 ft)
 
 ### Shape metrics by pitch type
 
@@ -155,12 +155,12 @@ Primary pitch shifted **FF → SI** post-trade.
 Primary pitch shifted **FF → FS** post-trade.
 
 **Pre-trade**
-- FS vs primary FF:, velo sep 9.9 mph, move sep 1.1 in, eff speed sep 9.8 mph, spin sep 704 rpm, spin axis sep 17°, arm angle sep 4.3°, extension sep 0.03 ft, API break sep 1.7 in, release strong tunnel (0.23 ft)
-- SL vs primary FF:, velo sep 9.7 mph, move sep 1.5 in, eff speed sep 9.6 mph, spin sep 7 rpm, spin axis sep 28°, arm angle sep 2.8°, extension sep 0.02 ft, API break sep 2.0 in, release strong tunnel (0.19 ft)
+- FS vs primary FF: velo sep 9.9 mph, move sep 1.1 in, eff speed sep 9.8 mph, spin sep 704 rpm, spin axis sep 17°, arm angle sep 4.3°, extension sep 0.03 ft, API break sep 1.7 in, release strong tunnel (0.23 ft)
+- SL vs primary FF: velo sep 9.7 mph, move sep 1.5 in, eff speed sep 9.6 mph, spin sep 7 rpm, spin axis sep 28°, arm angle sep 2.8°, extension sep 0.02 ft, API break sep 2.0 in, release strong tunnel (0.19 ft)
 
 **Post-trade**
-- FF vs primary FS:, velo sep 9.2 mph, move sep 1.0 in, eff speed sep 9.2 mph, spin sep 748 rpm, spin axis sep 18°, arm angle sep 5.8°, extension sep 0.01 ft, API break sep 1.5 in, release moderate tunnel (0.25 ft)
-- SL vs primary FS:, velo sep 0.4 mph, move sep 1.1 in, eff speed sep 0.6 mph, spin sep 574 rpm, spin axis sep 26°, arm angle sep nan°, extension sep 0.07 ft, API break sep 1.1 in, release strong tunnel (0.17 ft)
+- FF vs primary FS: velo sep 9.2 mph, move sep 1.0 in, eff speed sep 9.2 mph, spin sep 748 rpm, spin axis sep 18°, arm angle sep 5.8°, extension sep 0.01 ft, API break sep 1.5 in, release moderate tunnel (0.25 ft)
+- SL vs primary FS: velo sep 0.4 mph, move sep 1.1 in, eff speed sep 0.6 mph, spin sep 574 rpm, spin axis sep 26°, extension sep 0.07 ft, API break sep 1.1 in, release strong tunnel (0.17 ft)
 
 ### Shape metrics by pitch type
 
@@ -244,15 +244,15 @@ Primary pitch shifted **FF → FS** post-trade.
 
 
 **Pre-trade**
-- KC vs primary SI:, velo sep 11.1 mph, move sep 2.4 in, eff speed sep 11.3 mph, spin sep 430 rpm, spin axis sep 159°, arm angle sep 7.2°, extension sep 0.01 ft, API break sep 2.7 in, release moderate tunnel (0.31 ft)
-- FF vs primary SI:, velo sep 0.8 mph, move sep 0.9 in, eff speed sep 0.6 mph, spin sep 258 rpm, spin axis sep 2°, arm angle sep 0.0°, extension sep 0.02 ft, API break sep 1.0 in, release strong tunnel (0.03 ft)
-- FS vs primary SI:, velo sep 4.0 mph, move sep 0.2 in, eff speed sep 3.9 mph, spin sep 314 rpm, spin axis sep 8°, arm angle sep 0.9°, extension sep 0.04 ft, API break sep 0.8 in, release strong tunnel (0.05 ft)
-- SL vs primary SI:, velo sep 6.2 mph, move sep 1.3 in, eff speed sep 6.3 mph, spin sep 412 rpm, spin axis sep 53°, arm angle sep 3.3°, extension sep 0.03 ft, API break sep 1.4 in, release strong tunnel (0.15 ft)
+- KC vs primary SI: velo sep 11.1 mph, move sep 2.4 in, eff speed sep 11.3 mph, spin sep 430 rpm, spin axis sep 159°, arm angle sep 7.2°, extension sep 0.01 ft, API break sep 2.7 in, release moderate tunnel (0.31 ft)
+- FF vs primary SI: velo sep 0.8 mph, move sep 0.9 in, eff speed sep 0.6 mph, spin sep 258 rpm, spin axis sep 2°, arm angle sep 0.0°, extension sep 0.02 ft, API break sep 1.0 in, release strong tunnel (0.03 ft)
+- FS vs primary SI: velo sep 4.0 mph, move sep 0.2 in, eff speed sep 3.9 mph, spin sep 314 rpm, spin axis sep 8°, arm angle sep 0.9°, extension sep 0.04 ft, API break sep 0.8 in, release strong tunnel (0.05 ft)
+- SL vs primary SI: velo sep 6.2 mph, move sep 1.3 in, eff speed sep 6.3 mph, spin sep 412 rpm, spin axis sep 53°, arm angle sep 3.3°, extension sep 0.03 ft, API break sep 1.4 in, release strong tunnel (0.15 ft)
 
 **Post-trade**
-- KC vs primary SI:, velo sep 10.2 mph, move sep 2.5 in, eff speed sep 10.4 mph, spin sep 418 rpm, spin axis sep 156°, arm angle sep 2.5°, extension sep 0.05 ft, API break sep 2.8 in, release moderate tunnel (0.36 ft)
-- FF vs primary SI:, velo sep 0.6 mph, move sep 0.9 in, eff speed sep 0.4 mph, spin sep 248 rpm, spin axis sep 0°, arm angle sep 1.1°, extension sep 0.05 ft, API break sep 1.0 in, release strong tunnel (0.05 ft)
-- FS vs primary SI:, velo sep 3.8 mph, move sep 0.1 in, eff speed sep 3.8 mph, spin sep 222 rpm, spin axis sep 10°, arm angle sep 2.7°, extension sep 0.04 ft, API break sep 1.1 in, release strong tunnel (0.08 ft)
+- KC vs primary SI: velo sep 10.2 mph, move sep 2.5 in, eff speed sep 10.4 mph, spin sep 418 rpm, spin axis sep 156°, arm angle sep 2.5°, extension sep 0.05 ft, API break sep 2.8 in, release moderate tunnel (0.36 ft)
+- FF vs primary SI: velo sep 0.6 mph, move sep 0.9 in, eff speed sep 0.4 mph, spin sep 248 rpm, spin axis sep 0°, arm angle sep 1.1°, extension sep 0.05 ft, API break sep 1.0 in, release strong tunnel (0.05 ft)
+- FS vs primary SI: velo sep 3.8 mph, move sep 0.1 in, eff speed sep 3.8 mph, spin sep 222 rpm, spin axis sep 10°, arm angle sep 2.7°, extension sep 0.04 ft, API break sep 1.1 in, release strong tunnel (0.08 ft)
 
 ### Shape metrics by pitch type
 
@@ -374,16 +374,16 @@ Primary pitch shifted **FF → FS** post-trade.
 
 
 **Pre-trade**
-- SL vs primary FF:, velo sep 5.8 mph, move sep 1.5 in, eff speed sep 5.5 mph, spin sep 29 rpm, spin axis sep 42°, arm angle sep 5.3°, extension sep 0.03 ft, API break sep 1.8 in, release moderate tunnel (0.41 ft)
-- FS vs primary FF:, velo sep 5.6 mph, move sep 1.1 in, eff speed sep 5.5 mph, spin sep 736 rpm, spin axis sep 20°, arm angle sep 3.4°, extension sep 0.00 ft, API break sep 1.4 in, release strong tunnel (0.21 ft)
-- SI vs primary FF:, velo sep 0.1 mph, move sep 0.4 in, eff speed sep 0.2 mph, spin sep 36 rpm, spin axis sep 4°, arm angle sep 2.1°, extension sep 0.00 ft, API break sep 1.5 in, release strong tunnel (0.07 ft)
-- SV vs primary FF:, velo sep 12.0 mph, move sep 2.8 in, eff speed sep 12.4 mph, spin sep 287 rpm, spin axis sep 175°, arm angle sep 5.3°, extension sep 0.06 ft, API break sep 3.5 in, release distinct release (0.51 ft)
+- SL vs primary FF: velo sep 5.8 mph, move sep 1.5 in, eff speed sep 5.5 mph, spin sep 29 rpm, spin axis sep 42°, arm angle sep 5.3°, extension sep 0.03 ft, API break sep 1.8 in, release moderate tunnel (0.41 ft)
+- FS vs primary FF: velo sep 5.6 mph, move sep 1.1 in, eff speed sep 5.5 mph, spin sep 736 rpm, spin axis sep 20°, arm angle sep 3.4°, extension sep 0.00 ft, API break sep 1.4 in, release strong tunnel (0.21 ft)
+- SI vs primary FF: velo sep 0.1 mph, move sep 0.4 in, eff speed sep 0.2 mph, spin sep 36 rpm, spin axis sep 4°, arm angle sep 2.1°, extension sep 0.00 ft, API break sep 1.5 in, release strong tunnel (0.07 ft)
+- SV vs primary FF: velo sep 12.0 mph, move sep 2.8 in, eff speed sep 12.4 mph, spin sep 287 rpm, spin axis sep 175°, arm angle sep 5.3°, extension sep 0.06 ft, API break sep 3.5 in, release distinct release (0.51 ft)
 
 **Post-trade**
-- SL vs primary FF:, velo sep 5.7 mph, move sep 1.6 in, eff speed sep 5.4 mph, spin sep 19 rpm, spin axis sep 55°, arm angle sep 5.3°, extension sep 0.01 ft, API break sep 1.9 in, release moderate tunnel (0.38 ft)
-- FS vs primary FF:, velo sep 5.0 mph, move sep 1.1 in, eff speed sep 4.8 mph, spin sep 767 rpm, spin axis sep 17°, arm angle sep 3.2°, extension sep 0.00 ft, API break sep 1.4 in, release strong tunnel (0.19 ft)
-- SI vs primary FF:, velo sep 0.5 mph, move sep 0.4 in, eff speed sep 0.8 mph, spin sep 60 rpm, spin axis sep 0°, arm angle sep 1.9°, extension sep 0.01 ft, API break sep 1.4 in, release strong tunnel (0.07 ft)
-- SV vs primary FF:, velo sep 11.8 mph, move sep 2.7 in, eff speed sep 12.1 mph, spin sep 284 rpm, spin axis sep 170°, arm angle sep 5.5°, extension sep 0.07 ft, API break sep 3.4 in, release distinct release (0.47 ft)
+- SL vs primary FF: velo sep 5.7 mph, move sep 1.6 in, eff speed sep 5.4 mph, spin sep 19 rpm, spin axis sep 55°, arm angle sep 5.3°, extension sep 0.01 ft, API break sep 1.9 in, release moderate tunnel (0.38 ft)
+- FS vs primary FF: velo sep 5.0 mph, move sep 1.1 in, eff speed sep 4.8 mph, spin sep 767 rpm, spin axis sep 17°, arm angle sep 3.2°, extension sep 0.00 ft, API break sep 1.4 in, release strong tunnel (0.19 ft)
+- SI vs primary FF: velo sep 0.5 mph, move sep 0.4 in, eff speed sep 0.8 mph, spin sep 60 rpm, spin axis sep 0°, arm angle sep 1.9°, extension sep 0.01 ft, API break sep 1.4 in, release strong tunnel (0.07 ft)
+- SV vs primary FF: velo sep 11.8 mph, move sep 2.7 in, eff speed sep 12.1 mph, spin sep 284 rpm, spin axis sep 170°, arm angle sep 5.5°, extension sep 0.07 ft, API break sep 3.4 in, release distinct release (0.47 ft)
 
 ### Shape metrics by pitch type
 
@@ -506,16 +506,16 @@ Primary pitch shifted **FF → FS** post-trade.
 
 
 **Pre-trade**
-- CH vs primary FF:, velo sep 6.9 mph, move sep 1.4 in, eff speed sep 7.2 mph, spin sep 484 rpm, spin axis sep 39°, arm angle sep 10.0°, extension sep 0.11 ft, API break sep 1.9 in, release distinct release (0.45 ft)
-- CU vs primary FF:, velo sep 14.9 mph, move sep 1.9 in, eff speed sep 14.8 mph, spin sep 135 rpm, spin axis sep 144°, arm angle sep 0.7°, extension sep 0.08 ft, API break sep 2.9 in, release strong tunnel (0.11 ft)
-- ST vs primary FF:, velo sep 12.4 mph, move sep 1.8 in, eff speed sep 12.5 mph, spin sep 76 rpm, spin axis sep 130°, arm angle sep 5.6°, extension sep 0.13 ft, API break sep 2.4 in, release strong tunnel (0.25 ft)
-- SL vs primary FF:, velo sep 11.0 mph, move sep 1.4 in, eff speed sep 10.9 mph, spin sep 78 rpm, spin axis sep 101°, arm angle sep 6.8°, extension sep 0.07 ft, API break sep 2.0 in, release moderate tunnel (0.36 ft)
-- CS vs primary FF:, velo sep 19.2 mph, move sep 2.5 in, eff speed sep 19.5 mph, spin sep 52 rpm, spin axis sep 158°, arm angle sep 0.4°, extension sep 0.17 ft, API break sep 3.8 in, release strong tunnel (0.18 ft)
+- CH vs primary FF: velo sep 6.9 mph, move sep 1.4 in, eff speed sep 7.2 mph, spin sep 484 rpm, spin axis sep 39°, arm angle sep 10.0°, extension sep 0.11 ft, API break sep 1.9 in, release distinct release (0.45 ft)
+- CU vs primary FF: velo sep 14.9 mph, move sep 1.9 in, eff speed sep 14.8 mph, spin sep 135 rpm, spin axis sep 144°, arm angle sep 0.7°, extension sep 0.08 ft, API break sep 2.9 in, release strong tunnel (0.11 ft)
+- ST vs primary FF: velo sep 12.4 mph, move sep 1.8 in, eff speed sep 12.5 mph, spin sep 76 rpm, spin axis sep 130°, arm angle sep 5.6°, extension sep 0.13 ft, API break sep 2.4 in, release strong tunnel (0.25 ft)
+- SL vs primary FF: velo sep 11.0 mph, move sep 1.4 in, eff speed sep 10.9 mph, spin sep 78 rpm, spin axis sep 101°, arm angle sep 6.8°, extension sep 0.07 ft, API break sep 2.0 in, release moderate tunnel (0.36 ft)
+- CS vs primary FF: velo sep 19.2 mph, move sep 2.5 in, eff speed sep 19.5 mph, spin sep 52 rpm, spin axis sep 158°, arm angle sep 0.4°, extension sep 0.17 ft, API break sep 3.8 in, release strong tunnel (0.18 ft)
 
 **Post-trade**
-- CH vs primary FF:, velo sep 6.8 mph, move sep 1.2 in, eff speed sep 6.9 mph, spin sep 370 rpm, spin axis sep 35°, arm angle sep 7.3°, extension sep 0.01 ft, API break sep 1.6 in, release moderate tunnel (0.32 ft)
-- CU vs primary FF:, velo sep 14.3 mph, move sep 1.8 in, eff speed sep 14.2 mph, spin sep 148 rpm, spin axis sep 146°, arm angle sep 1.4°, extension sep 0.02 ft, API break sep 2.7 in, release strong tunnel (0.12 ft)
-- ST vs primary FF:, velo sep 11.5 mph, move sep 1.6 in, eff speed sep 11.8 mph, spin sep 89 rpm, spin axis sep 122°, arm angle sep 3.0°, extension sep 0.15 ft, API break sep 2.2 in, release strong tunnel (0.25 ft)
+- CH vs primary FF: velo sep 6.8 mph, move sep 1.2 in, eff speed sep 6.9 mph, spin sep 370 rpm, spin axis sep 35°, arm angle sep 7.3°, extension sep 0.01 ft, API break sep 1.6 in, release moderate tunnel (0.32 ft)
+- CU vs primary FF: velo sep 14.3 mph, move sep 1.8 in, eff speed sep 14.2 mph, spin sep 148 rpm, spin axis sep 146°, arm angle sep 1.4°, extension sep 0.02 ft, API break sep 2.7 in, release strong tunnel (0.12 ft)
+- ST vs primary FF: velo sep 11.5 mph, move sep 1.6 in, eff speed sep 11.8 mph, spin sep 89 rpm, spin axis sep 122°, arm angle sep 3.0°, extension sep 0.15 ft, API break sep 2.2 in, release strong tunnel (0.25 ft)
 
 ### Shape metrics by pitch type
 

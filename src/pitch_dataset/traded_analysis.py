@@ -348,10 +348,10 @@ def format_traded_report(
     lines.extend(
         [
             "Pre/post splits use **trade date** cutoffs and **pitcher team** derived from "
-            "`inning_topbot` + home/away. Shape metrics include arm angle, release point, "
-            "Pairing/tunnel notes reuse extended separation logic from `arsenal.py` "
-            "(velo/movement, effective speed, spin, arm angle, extension, API break, "
-            "3D release distance).",
+            "`inning_topbot` + home/away. Shape metrics cover arm angle, spin, extension, "
+            "effective speed, release point, movement, and API break. Pairing/tunnel notes "
+            "reuse extended separation logic from `arsenal.py` (velo/movement, effective "
+            "speed, spin, arm angle, extension, API break, 3D release distance).",
             "",
         ]
     )
@@ -474,6 +474,114 @@ def write_traded_json(analyses: list[TradedPitcherAnalysis], path: Path | str) -
     return path
 
 
+def _fmt_num(value: float | None, *, decimals: int = 2) -> str:
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return "—"
+    return f"{value:.{decimals}f}"
+
+
+def _fmt_delta(pre: float | None, post: float | None, *, decimals: int = 2) -> str:
+    if pre is None or post is None:
+        return "—"
+    if isinstance(pre, float) and np.isnan(pre):
+        return "—"
+    if isinstance(post, float) and np.isnan(post):
+        return "—"
+    return f"{post - pre:+.{decimals}f}"
+
+
+def _pairing_lookup(pairs: list[PairingMetric]) -> dict[str, PairingMetric]:
+    return {p.pitch_type: p for p in pairs}
+
+
+PAIRING_DELTA_ROWS: list[tuple[str, str, int]] = [
+    ("velo_sep", "Velo sep (mph)", 1),
+    ("mov_sep", "Move sep (in)", 1),
+    ("eff_speed_sep", "Eff speed sep (mph)", 1),
+    ("spin_sep", "Spin sep (rpm)", 0),
+    ("spin_axis_sep", "Spin axis sep (deg)", 0),
+    ("arm_sep", "Arm angle sep (deg)", 1),
+    ("extension_sep", "Extension sep (ft)", 2),
+    ("break_sep", "API break sep (in)", 1),
+    ("release_dist_ft", "Release dist (ft)", 2),
+]
+
+
+def _pairing_delta_html(pre: list[PairingMetric], post: list[PairingMetric]) -> str:
+    pre_map = _pairing_lookup(pre)
+    post_map = _pairing_lookup(post)
+    secondaries = sorted(set(pre_map) | set(post_map))
+    if not secondaries:
+        return ""
+
+    rows: list[str] = []
+    for pt in secondaries:
+        pre_row = pre_map.get(pt)
+        post_row = post_map.get(pt)
+        for field, label, decimals in PAIRING_DELTA_ROWS:
+            pre_v = getattr(pre_row, field, None) if pre_row else None
+            post_v = getattr(post_row, field, None) if post_row else None
+            if pre_v is None and post_v is None:
+                continue
+            rows.append(
+                "<tr>"
+                f"<td>{_pitch_label(pt)}</td>"
+                f"<td>{label}</td>"
+                f"<td>{_fmt_num(pre_v, decimals=decimals)}</td>"
+                f"<td>{_fmt_num(post_v, decimals=decimals)}</td>"
+                f"<td>{_fmt_delta(pre_v, post_v, decimals=decimals)}</td>"
+                "</tr>"
+            )
+    if not rows:
+        return ""
+    return (
+        "<table><thead><tr><th>Secondary</th><th>Metric</th><th>Pre</th><th>Post</th><th>Δ</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table>"
+    )
+
+
+def _shape_sections_html(rec: TradedPitcherAnalysis) -> str:
+    highlight_cols = [
+        "arm_angle",
+        "release_pos_z",
+        "release_extension",
+        "release_spin_rate",
+        "effective_speed",
+        "api_break_z_with_gravity",
+    ]
+    cols = highlight_cols + [c for c in SHAPE_METRIC_COLS if c not in highlight_cols]
+    shape_pts = sorted(set(rec.shape_pre) | set(rec.shape_post))
+    blocks: list[str] = []
+    for pt in shape_pts:
+        pre_row = rec.shape_pre.get(pt, {})
+        post_row = rec.shape_post.get(pt, {})
+        metric_rows: list[str] = []
+        for col in cols:
+            if col not in pre_row and col not in post_row:
+                continue
+            pre_v = pre_row.get(col)
+            post_v = post_row.get(col)
+            if pre_v is None and post_v is None:
+                continue
+            decimals = 0 if col == "release_spin_rate" else 2
+            metric_rows.append(
+                "<tr>"
+                f"<td>{SHAPE_METRIC_LABELS.get(col, col)}</td>"
+                f"<td>{_fmt_num(pre_v, decimals=decimals)}</td>"
+                f"<td>{_fmt_num(post_v, decimals=decimals)}</td>"
+                f"<td>{_fmt_delta(pre_v, post_v, decimals=decimals)}</td>"
+                "</tr>"
+            )
+        if not metric_rows:
+            continue
+        blocks.append(
+            f"<details open><summary>{_pitch_label(pt)}</summary>"
+            "<table><thead><tr><th>Metric</th><th>Pre</th><th>Post</th><th>Δ</th></tr></thead>"
+            f"<tbody>{''.join(metric_rows)}</tbody></table></details>"
+        )
+    return "".join(blocks)
+
+
 def write_traded_html(
     analyses: list[TradedPitcherAnalysis],
     path: Path | str,
@@ -514,28 +622,8 @@ def write_traded_html(
             pairing_html.extend(f"<li>{p.note}</li>" for p in rec.pairing_post)
             pairing_html.append("</ul>")
 
-        shape_rows = []
-        for pt in sorted(set(rec.shape_pre) | set(rec.shape_post)):
-            pre_row = rec.shape_pre.get(pt, {})
-            post_row = rec.shape_post.get(pt, {})
-            for col in ("arm_angle", "release_pos_z", "release_extension", "release_spin_rate"):
-                pre_v = pre_row.get(col)
-                post_v = post_row.get(col)
-                if pre_v is None and post_v is None:
-                    continue
-                delta = (post_v - pre_v) if pre_v is not None and post_v is not None else None
-                delta_s = f"{delta:+.2f}" if delta is not None else "—"
-                pre_s = f"{pre_v:.2f}" if pre_v is not None else "—"
-                post_s = f"{post_v:.2f}" if post_v is not None else "—"
-                shape_rows.append(
-                    "<tr>"
-                    f"<td>{_pitch_label(pt)}</td>"
-                    f"<td>{SHAPE_METRIC_LABELS.get(col, col)}</td>"
-                    f"<td>{pre_s}</td>"
-                    f"<td>{post_s}</td>"
-                    f"<td>{delta_s}</td>"
-                    "</tr>"
-                )
+        pairing_delta = _pairing_delta_html(rec.pairing_pre, rec.pairing_post)
+        shape_sections = _shape_sections_html(rec)
 
         primary_shift = ""
         if rec.primary_pre != rec.primary_post:
@@ -574,11 +662,10 @@ def write_traded_html(
   </div>
   <h3>Pairing / tunnel notes</h3>
   {''.join(pairing_html)}
-  <h3>Shape highlights (arm angle, release height, extension, spin)</h3>
-  <table>
-    <thead><tr><th>Pitch</th><th>Metric</th><th>Pre</th><th>Post</th><th>Δ</th></tr></thead>
-    <tbody>{''.join(shape_rows)}</tbody>
-  </table>
+  <h3>Pairing metrics pre vs post (vs primary)</h3>
+  {pairing_delta}
+  <h3>Shape metrics by pitch type</h3>
+  <div class="shape-groups">{shape_sections}</div>
 </section>
 """
         )
@@ -625,6 +712,9 @@ def write_traded_html(
     th {{ background: #efefeb; font-weight: 600; font-size: 12px; }}
     tr:last-child td {{ border-bottom: 0; }}
     ul.pair {{ margin: 0 0 12px; padding-left: 18px; color: var(--muted); font-size: 13px; }}
+    .shape-groups details {{ margin: 12px 0; background: var(--card); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }}
+    .shape-groups summary {{ cursor: pointer; padding: 10px 12px; font-weight: 600; font-size: 13px; background: #efefeb; }}
+    .shape-groups details table {{ border: 0; border-radius: 0; margin: 0; }}
     .neg {{ color: var(--good); }}
     .pos {{ color: var(--accent); }}
     .caption {{ margin-top: 8px; font-size: 12px; color: var(--muted); }}
