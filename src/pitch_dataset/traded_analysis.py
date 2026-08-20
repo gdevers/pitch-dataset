@@ -734,3 +734,227 @@ def write_traded_html(
 """
     path.write_text(html, encoding="utf-8")
     return path
+
+
+SHAPE_FOCUS_COLS: list[str] = [
+    "arm_angle",
+    "release_spin_rate",
+    "release_extension",
+    "effective_speed",
+    "api_break_z_with_gravity",
+    "api_break_x_arm",
+    "api_break_x_batter_in",
+]
+
+
+def _shape_focus_table_html(rec: TradedPitcherAnalysis) -> str:
+    """Compact shape delta table for the five headline Statcast fields."""
+    shape_pts = sorted(set(rec.shape_pre) | set(rec.shape_post))
+    rows: list[str] = []
+    for pt in shape_pts:
+        pre_row = rec.shape_pre.get(pt, {})
+        post_row = rec.shape_post.get(pt, {})
+        for col in SHAPE_FOCUS_COLS:
+            pre_v = pre_row.get(col)
+            post_v = post_row.get(col)
+            if pre_v is None and post_v is None:
+                continue
+            decimals = 0 if col == "release_spin_rate" else 2
+            rows.append(
+                "<tr>"
+                f"<td>{_pitch_label(pt)}</td>"
+                f"<td>{SHAPE_METRIC_LABELS.get(col, col)}</td>"
+                f"<td>{_fmt_num(pre_v, decimals=decimals)}</td>"
+                f"<td>{_fmt_num(post_v, decimals=decimals)}</td>"
+                f"<td>{_fmt_delta(pre_v, post_v, decimals=decimals)}</td>"
+                "</tr>"
+            )
+    if not rows:
+        return "<p class=\"meta\">No shape metrics in sample.</p>"
+    return (
+        "<table><thead><tr><th>Pitch</th><th>Metric</th><th>Pre</th><th>Post</th><th>Δ</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table>"
+    )
+
+
+def _pairing_table_html(pairs: list[PairingMetric], primary: str | None) -> str:
+    if not pairs:
+        return "<p class=\"meta\">No pairing rows for this period.</p>"
+    pri = primary or "—"
+    rows: list[str] = []
+    for p in pairs:
+        rows.append(
+            "<tr>"
+            f"<td>{_pitch_label(p.pitch_type)}</td>"
+            f"<td>{p.velo_sep:.1f}</td>"
+            f"<td>{p.mov_sep:.1f}</td>"
+            f"<td>{p.eff_speed_sep:.1f}</td>"
+            f"<td>{p.spin_sep:.0f}</td>"
+            f"<td>{p.arm_sep:.1f}</td>"
+            f"<td>{p.extension_sep:.2f}</td>"
+            f"<td>{p.break_sep:.1f}</td>"
+            f"<td>{p.release_dist_ft:.2f}</td>"
+            f"<td>{p.tunnel}</td>"
+            "</tr>"
+        )
+    return (
+        f"<p class=\"meta\">vs primary <strong>{pri}</strong></p>"
+        "<table><thead><tr>"
+        "<th>Secondary</th><th>Velo</th><th>Move</th><th>Eff spd</th>"
+        "<th>Spin</th><th>Arm</th><th>Ext</th><th>Break</th><th>Rel dist</th><th>Tunnel</th>"
+        "</tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table>"
+    )
+
+
+def write_traded_shape_html(
+    analyses: list[TradedPitcherAnalysis],
+    path: Path | str,
+    *,
+    data_note: str | None = None,
+) -> Path:
+    """Self-contained shape + pairing visual with pitcher switcher (distinct from usage HTML)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    note = data_note or (
+        "MLB Statcast · arm angle, spin, extension, effective speed, API break · "
+        "extended pairing/tunnel vs primary"
+    )
+
+    payload: list[dict[str, Any]] = []
+    panels: list[str] = []
+    for i, rec in enumerate(analyses):
+        shape_delta = _shape_focus_table_html(rec)
+        pairing_delta = _pairing_delta_html(rec.pairing_pre, rec.pairing_post)
+        pairing_pre = _pairing_table_html(rec.pairing_pre, rec.primary_pre)
+        pairing_post = _pairing_table_html(rec.pairing_post, rec.primary_post)
+        primary_shift = ""
+        if rec.primary_pre != rec.primary_post:
+            primary_shift = (
+                f"Primary: {rec.primary_pre} → {rec.primary_post} · "
+            )
+        hidden = "" if i == 0 else ' style="display:none"'
+
+        panels.append(
+            f"""
+<article class="pitcher-panel" data-key="{rec.key}"{hidden}>
+  <header class="panel-head">
+    <h2>{rec.name}</h2>
+    <p class="meta">{rec.from_team} → {rec.to_team} · trade {rec.trade_date} · MLBAM {rec.pitcher_id}</p>
+    <p class="meta">{rec.n_pre:,} pre / {rec.n_post:,} post pitches · {primary_shift}season arm {rec.overall_shape.get('arm_angle', 0):.1f}° · ext {rec.overall_shape.get('release_extension', 0):.2f} ft</p>
+  </header>
+  <div class="grid-2">
+    <section>
+      <h3>Shape deltas (pre vs post)</h3>
+      <p class="section-note">Arm angle · spin · extension · effective speed · API break by pitch type</p>
+      {shape_delta}
+    </section>
+    <section>
+      <h3>Pairing deltas vs primary</h3>
+      <p class="section-note">Spin/arm/extension/break separation and 3D release tunnel distance</p>
+      {pairing_delta or '<p class="meta">No overlapping secondaries across periods.</p>'}
+    </section>
+  </div>
+  <div class="grid-2">
+    <section>
+      <h3>Pre-trade pairing</h3>
+      {pairing_pre}
+    </section>
+    <section>
+      <h3>Post-trade pairing</h3>
+      {pairing_post}
+    </section>
+  </div>
+</article>
+"""
+        )
+
+        d = asdict(rec)
+        d["pairing_pre"] = [asdict(p) for p in rec.pairing_pre]
+        d["pairing_post"] = [asdict(p) for p in rec.pairing_post]
+        payload.append(d)
+
+    options = "".join(
+        f'<option value="{rec.key}"{" selected" if i == 0 else ""}>{rec.name} ({rec.from_team} → {rec.to_team})</option>'
+        for i, rec in enumerate(analyses)
+    )
+    data_json = json.dumps(payload).replace("</", "<\\/")
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2026 Trade Deadline · Shape &amp; Pairing Lab</title>
+  <style>
+    :root {{
+      --bg: #0f1419; --fg: #e8eaed; --muted: #9aa0a6; --line: #2d333b;
+      --accent: #3dd6c6; --accent-dim: #1a4f4a; --card: #161b22;
+      --pre: #8b949e; --post: #3dd6c6; --warn: #d4a574;
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{ margin: 0; font: 15px/1.5 "IBM Plex Sans", "Segoe UI", sans-serif; color: var(--fg); background: var(--bg); }}
+    main {{ max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }}
+    .brand {{ display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }}
+    .brand-tag {{ font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent-dim); padding: 3px 8px; border-radius: 3px; }}
+    h1 {{ font: 600 26px/1.2 sans-serif; margin: 0; letter-spacing: -0.02em; }}
+    h2 {{ font: 600 20px/1.3 sans-serif; margin: 0 0 6px; }}
+    h3 {{ font: 600 14px/1.3 sans-serif; margin: 0 0 8px; color: var(--accent); }}
+    p, .meta {{ color: var(--muted); margin: 0 0 10px; font-size: 13px; }}
+    .section-note {{ font-size: 12px; margin-bottom: 12px; }}
+    .controls {{ display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 20px 0 28px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }}
+    .controls label {{ font-size: 13px; color: var(--muted); }}
+    select {{ font: inherit; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); min-width: 280px; }}
+    .pitcher-panel {{ background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 20px 22px 24px; }}
+    .panel-head {{ border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 20px; }}
+    .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }}
+    table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
+    th, td {{ padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: right; }}
+    th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) {{ text-align: left; }}
+    th {{ color: var(--muted); font-weight: 600; font-size: 11px; }}
+    tr:last-child td {{ border-bottom: 0; }}
+    .delta-pos {{ color: var(--accent); }}
+    .delta-neg {{ color: var(--warn); }}
+    .caption {{ margin-top: 24px; font-size: 12px; color: var(--muted); }}
+    .metric-bars {{ margin: 16px 0 24px; }}
+    .metric-row {{ display: grid; grid-template-columns: 140px 1fr 1fr 56px; gap: 8px; align-items: center; margin: 6px 0; font-size: 12px; }}
+    .metric-row .lbl {{ color: var(--muted); }}
+    .bar-track {{ height: 8px; background: var(--line); border-radius: 2px; position: relative; }}
+    .bar-fill {{ height: 100%; border-radius: 2px; }}
+    .bar-fill.pre {{ background: var(--pre); }}
+    .bar-fill.post {{ background: var(--post); }}
+    @media (max-width: 860px) {{ .grid-2 {{ grid-template-columns: 1fr; }} }}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand">
+      <span class="brand-tag">Shape · Pairing</span>
+      <h1>2026 Trade Deadline · Shape &amp; Pairing Lab</h1>
+    </div>
+    <p class="meta">{note}</p>
+    <div class="controls">
+      <label for="pitcher-select">Pitcher</label>
+      <select id="pitcher-select" aria-label="Select traded pitcher">{options}</select>
+    </div>
+    <div id="panels">{''.join(panels)}</div>
+    <p class="caption">Source: pitch-dataset traded analysis · extended pairing from arsenal.py (spin/arm/extension/break/release tunnel)</p>
+  </main>
+  <script id="shape-data" type="application/json">{data_json}</script>
+  <script>
+    (function () {{
+      var select = document.getElementById('pitcher-select');
+      var panels = document.querySelectorAll('.pitcher-panel');
+      select.addEventListener('change', function () {{
+        var key = select.value;
+        panels.forEach(function (p) {{
+          p.style.display = p.getAttribute('data-key') === key ? '' : 'none';
+        }});
+      }});
+    }})();
+  </script>
+</body>
+</html>
+"""
+    path.write_text(html, encoding="utf-8")
+    return path

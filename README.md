@@ -10,6 +10,7 @@ Open the static arsenal optimization summary (Cease headline + top-3 ΔxwOBA):
 
 - **In a clone:** open [`reports/arsenal_optimization.html`](reports/arsenal_optimization.html) in your browser (double-click or `open reports/arsenal_optimization.html` on macOS).
 - **Traded deadline:** [`reports/traded_pitchers.html`](reports/traded_pitchers.html) — Skubal, Gausman, Soriano, Mize, Peralta pre/post splits.
+- **Shape & pairing lab:** [`reports/traded_pitchers_shape.html`](reports/traded_pitchers_shape.html) — arm angle, spin, extension, effective speed, API break, extended pairing/tunnel (pitcher switcher). Canvas: [`traded-pitchers-shape.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers-shape.canvas.tsx).
 - **On GitHub:** [blob view](https://github.com/gdevers/pitch-dataset/blob/main/reports/arsenal_optimization.html) shows source; GitHub’s HTML preview does **not** run the page JS well. Prefer local open, or GitHub Pages if enabled for this private repo (Pro/Team required for private Pages).
 
 Also listed under [`reports/`](reports/README.md).
@@ -151,7 +152,7 @@ uv run pitch-dataset traded
 uv run pitch-dataset traded --pitchers skubal,gausman --report reports/traded_pitchers.md --html reports/traded_pitchers.html
 ```
 
-Outputs: `reports/traded_pitchers.md`, `reports/traded_pitchers.html` (full shape + pairing pre/post deltas). Interactive canvas: [`traded-pitchers.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers.canvas.tsx). Copy to Downloads: `cp reports/traded_pitchers.html ~/Downloads/traded-pitchers-visual.html`. Team affiliation is derived from `inning_topbot` + home/away; post-trade samples are partial through the data end date.
+Outputs: `reports/traded_pitchers.md`, `reports/traded_pitchers.html` (full shape + pairing pre/post deltas), `reports/traded_pitchers_shape.html` (shape/pairing-focused visual with pitcher switcher). Canvases: [`traded-pitchers.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers.canvas.tsx), [`traded-pitchers-shape.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers-shape.canvas.tsx). Copy to Downloads: `cp reports/traded_pitchers_shape.html ~/Downloads/traded-pitchers-shape-visual.html`. Team affiliation is derived from `inning_topbot` + home/away; post-trade samples are partial through the data end date.
 
 ### Example output
 

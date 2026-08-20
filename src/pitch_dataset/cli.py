@@ -216,6 +216,12 @@ def _add_traded_parser(sub: argparse._SubParsersAction) -> None:
         help="Self-contained HTML visual path",
     )
     traded.add_argument(
+        "--shape-html",
+        type=str,
+        default="reports/traded_pitchers_shape.html",
+        help="Shape + pairing focused HTML visual (pitcher switcher)",
+    )
+    traded.add_argument(
         "--json",
         type=str,
         default=None,
@@ -350,6 +356,7 @@ def _cmd_traded(args: argparse.Namespace) -> int:
         write_traded_html,
         write_traded_json,
         write_traded_report,
+        write_traded_shape_html,
     )
 
     pitches = _load_league_frames(args)
@@ -373,8 +380,10 @@ def _cmd_traded(args: argparse.Namespace) -> int:
     print(report)
     out_md = write_traded_report(analyses, args.report, data_note=data_note)
     out_html = write_traded_html(analyses, args.html, data_note=data_note)
+    out_shape_html = write_traded_shape_html(analyses, args.shape_html, data_note=data_note)
     print(f"Wrote report -> {out_md}", file=sys.stderr)
     print(f"Wrote HTML -> {out_html}", file=sys.stderr)
+    print(f"Wrote shape HTML -> {out_shape_html}", file=sys.stderr)
     if args.json:
         out_json = write_traded_json(analyses, args.json)
         print(f"Wrote JSON -> {out_json}", file=sys.stderr)
