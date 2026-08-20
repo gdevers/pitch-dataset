@@ -41,6 +41,50 @@ COUNT_BUCKETS = {
     (3, 2): "full",
 }
 
+# Statcast shape fields used for pitch-level features and pairing/tunnel logic.
+SHAPE_METRIC_COLS = [
+    "release_speed",
+    "effective_speed",
+    "release_extension",
+    "release_spin_rate",
+    "spin_axis",
+    "arm_angle",
+    "release_pos_x",
+    "release_pos_y",
+    "release_pos_z",
+    "pfx_x",
+    "pfx_z",
+    "api_break_x_arm",
+    "api_break_x_batter_in",
+    "api_break_z_with_gravity",
+]
+
+# Pitch-level shape features fed to the outcome model (raw Statcast per pitch).
+PITCH_SHAPE_FEATURE_COLS = [
+    "arm_angle",
+    "release_spin_rate",
+    "spin_axis",
+    "release_extension",
+    "effective_speed",
+    "release_pos_y",
+    "api_break_x_arm",
+    "api_break_x_batter_in",
+    "api_break_z_with_gravity",
+]
+
+# Pairing outputs vs primary pitch (pitcher-level arsenal means).
+PAIRING_FEATURE_COLS = [
+    "pair_velo_sep",
+    "pair_mov_sep",
+    "pair_release_sim",
+    "pair_eff_speed_sep",
+    "pair_arm_sep",
+    "pair_extension_sep",
+    "pair_spin_sep",
+    "pair_spin_axis_sep",
+    "pair_break_sep",
+]
+
 CONTEXT_FEATURE_COLS = [
     "platoon_rh",
     "balls",
@@ -63,9 +107,8 @@ CONTEXT_FEATURE_COLS = [
     "batter_xwoba_prior",
     "prev_same_pitch",
     "prev_is_fastball",
-    "pair_velo_sep",
-    "pair_mov_sep",
-    "pair_release_sim",
+    *PITCH_SHAPE_FEATURE_COLS,
+    *PAIRING_FEATURE_COLS,
 ]
 
 PITCH_ONEHOT_PREFIX = "pt_"
@@ -134,6 +177,7 @@ def prepare_pitches(df: pd.DataFrame) -> pd.DataFrame:
 
     out = _add_sequence_features(out)
     out = _add_hitter_context(out)
+    out = _coerce_shape_metrics(out)
     out = _add_pairing_features(out)
     out = _add_count_dummies(out)
     out = out.reset_index(drop=True)
@@ -165,19 +209,34 @@ def build_model_matrix(
     return X, y_rv, y_xwoba
 
 
-def context_row_features(row: pd.Series, pitch_types: Iterable[str]) -> pd.DataFrame:
+def context_row_features(
+    row: pd.Series,
+    pitch_types: Iterable[str],
+    *,
+    arsenal_means: pd.DataFrame | None = None,
+    primary_pitch: str | None = None,
+) -> pd.DataFrame:
     """Build one feature row per candidate pitch type for a single context."""
     base = {col: row.get(col, 0) for col in CONTEXT_FEATURE_COLS}
+    if arsenal_means is not None and primary_pitch:
+        primary_row = arsenal_means.loc[primary_pitch] if primary_pitch in arsenal_means.index else None
+    else:
+        primary_row = None
+
     rows = []
     for pt in pitch_types:
         feat = dict(base)
         for other in pitch_types:
             feat[f"{PITCH_ONEHOT_PREFIX}{other}"] = int(other == pt)
-        # Pairing vs previous pitch should reflect candidate pitch vs prev.
         prev = row.get("prev_pitch_type")
         if isinstance(prev, str) and prev and prev != "NONE":
             feat["prev_same_pitch"] = int(prev == pt)
             feat["prev_is_fastball"] = int(prev in {"FF", "SI", "FC", "FA"})
+        if arsenal_means is not None and primary_pitch and pt in arsenal_means.index:
+            feat.update(pairing_features_for_type(arsenal_means, primary_pitch, pt))
+            for col in PITCH_SHAPE_FEATURE_COLS:
+                if col in arsenal_means.columns:
+                    feat[col] = float(arsenal_means.loc[pt, col])
         rows.append(feat)
     return pd.DataFrame(rows)
 
@@ -276,27 +335,175 @@ def _add_hitter_context(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _add_pairing_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Pitcher-level arsenal pairing: velo/movement separation + release similarity."""
+def _coerce_shape_metrics(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
-    metrics = ["release_speed", "pfx_x", "pfx_z", "release_pos_x", "release_pos_z"]
+    for col in PITCH_SHAPE_FEATURE_COLS:
+        if col in out.columns:
+            out[col] = pd.to_numeric(out[col], errors="coerce")
+    return out
+
+
+def _circular_sep(a: float, b: float, *, period: float = 360.0) -> float:
+    diff = abs(float(a) - float(b)) % period
+    return min(diff, period - diff)
+
+
+def _euclidean_sep(
+    row_a: pd.Series,
+    row_b: pd.Series,
+    cols: list[str],
+) -> float:
+    total = 0.0
+    for col in cols:
+        if col not in row_a.index or col not in row_b.index:
+            continue
+        av = row_a[col]
+        bv = row_b[col]
+        if pd.isna(av) or pd.isna(bv):
+            continue
+        total += (float(av) - float(bv)) ** 2
+    return float(np.sqrt(total))
+
+
+def pitcher_arsenal_means(
+    df: pd.DataFrame,
+    *,
+    metrics: list[str] | None = None,
+) -> pd.DataFrame:
+    """Pitch-type means for one pitcher's subset."""
+    metrics = metrics or SHAPE_METRIC_COLS
+    cols = [c for c in metrics if c in df.columns]
+    if not cols or df.empty:
+        return pd.DataFrame()
+    return df.groupby("pitch_type", as_index=True)[cols].mean(numeric_only=True)
+
+
+def primary_pitch_type(df: pd.DataFrame) -> str | None:
+    if df.empty:
+        return None
+    return str(df["pitch_type"].value_counts().idxmax())
+
+
+def pairing_features_for_type(
+    arsenal_means: pd.DataFrame,
+    primary: str,
+    candidate: str,
+) -> dict[str, float]:
+    """Pairing/tunnel features for a candidate pitch vs the primary pitch."""
+    out = {col: 0.0 for col in PAIRING_FEATURE_COLS}
+    if primary not in arsenal_means.index or candidate not in arsenal_means.index:
+        return out
+
+    pri = arsenal_means.loc[primary]
+    cand = arsenal_means.loc[candidate]
+    is_primary = candidate == primary
+
+    if "release_speed" in arsenal_means.columns:
+        out["pair_velo_sep"] = 0.0 if is_primary else abs(
+            float(cand["release_speed"]) - float(pri["release_speed"])
+        )
+    if {"pfx_x", "pfx_z"}.issubset(arsenal_means.columns):
+        out["pair_mov_sep"] = 0.0 if is_primary else _euclidean_sep(cand, pri, ["pfx_x", "pfx_z"])
+    rel_cols = [c for c in ("release_pos_x", "release_pos_y", "release_pos_z") if c in arsenal_means.columns]
+    if rel_cols:
+        rel = 0.0 if is_primary else _euclidean_sep(cand, pri, rel_cols)
+        out["pair_release_sim"] = 1.0 if is_primary else 1.0 / (1.0 + rel)
+    if "effective_speed" in arsenal_means.columns:
+        out["pair_eff_speed_sep"] = 0.0 if is_primary else abs(
+            float(cand["effective_speed"]) - float(pri["effective_speed"])
+        )
+    if "arm_angle" in arsenal_means.columns:
+        out["pair_arm_sep"] = 0.0 if is_primary else abs(
+            float(cand["arm_angle"]) - float(pri["arm_angle"])
+        )
+    if "release_extension" in arsenal_means.columns:
+        out["pair_extension_sep"] = 0.0 if is_primary else abs(
+            float(cand["release_extension"]) - float(pri["release_extension"])
+        )
+    if "release_spin_rate" in arsenal_means.columns:
+        out["pair_spin_sep"] = 0.0 if is_primary else abs(
+            float(cand["release_spin_rate"]) - float(pri["release_spin_rate"])
+        )
+    if "spin_axis" in arsenal_means.columns:
+        out["pair_spin_axis_sep"] = 0.0 if is_primary else _circular_sep(
+            float(cand["spin_axis"]), float(pri["spin_axis"])
+        )
+    break_cols = [c for c in (
+        "api_break_x_arm", "api_break_x_batter_in", "api_break_z_with_gravity"
+    ) if c in arsenal_means.columns]
+    if break_cols:
+        out["pair_break_sep"] = 0.0 if is_primary else _euclidean_sep(cand, pri, break_cols)
+    return out
+
+
+def pairing_note_for_type(
+    arsenal_means: pd.DataFrame,
+    primary: str,
+    candidate: str,
+) -> str:
+    """Human-readable pairing note for reports."""
+    if primary not in arsenal_means.index or candidate not in arsenal_means.index:
+        return ""
+    if candidate == primary:
+        return ""
+
+    pri = arsenal_means.loc[primary]
+    row = arsenal_means.loc[candidate]
+    feats = pairing_features_for_type(arsenal_means, primary, candidate)
+
+    rel_cols = [c for c in ("release_pos_x", "release_pos_y", "release_pos_z") if c in arsenal_means.columns]
+    rel = _euclidean_sep(row, pri, rel_cols) if rel_cols else 0.0
+    tunnel = (
+        "strong tunnel" if rel < 0.25 else ("moderate tunnel" if rel < 0.45 else "distinct release")
+    )
+
+    header = f"{candidate} vs primary {primary}"
+    details = [
+        f"velo sep {feats['pair_velo_sep']:.1f} mph",
+        f"move sep {feats['pair_mov_sep']:.1f} in",
+    ]
+    if feats["pair_eff_speed_sep"]:
+        details.append(f"eff speed sep {feats['pair_eff_speed_sep']:.1f} mph")
+    if feats["pair_spin_sep"]:
+        details.append(f"spin sep {feats['pair_spin_sep']:.0f} rpm")
+    if feats["pair_spin_axis_sep"]:
+        details.append(f"spin axis sep {feats['pair_spin_axis_sep']:.0f}°")
+    if feats["pair_arm_sep"]:
+        details.append(f"arm angle sep {feats['pair_arm_sep']:.1f}°")
+    if feats["pair_extension_sep"]:
+        details.append(f"extension sep {feats['pair_extension_sep']:.2f} ft")
+    if feats["pair_break_sep"]:
+        details.append(f"API break sep {feats['pair_break_sep']:.1f} in")
+    details.append(f"release {tunnel} ({rel:.2f} ft)")
+    return f"{header}: {', '.join(details)}"
+
+
+def _add_pairing_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Pitcher-level arsenal pairing: shape separation + release similarity."""
+    out = df.copy()
+    metrics = [c for c in SHAPE_METRIC_COLS if c in out.columns]
     drop_cols = [
         c
         for c in out.columns
         if c.startswith(("avg_", "pri_"))
-        or c in {"pair_velo_sep", "pair_mov_sep", "pair_release_sim", "primary_pitch"}
+        or c in PAIRING_FEATURE_COLS
+        or c == "primary_pitch"
     ]
     if drop_cols:
         out = out.drop(columns=drop_cols)
     for col in metrics:
         out[col] = pd.to_numeric(out.get(col), errors="coerce")
 
+    if not metrics or "pitcher" not in out.columns:
+        for col in PAIRING_FEATURE_COLS:
+            out[col] = 0.0
+        return out
+
     arsenal = (
         out.groupby(["pitcher", "pitch_type"], as_index=False)[metrics]
         .mean()
         .rename(columns={c: f"avg_{c}" for c in metrics})
     )
-    # Primary pitch = most thrown.
     primary = (
         out.groupby(["pitcher", "pitch_type"])
         .size()
@@ -306,37 +513,25 @@ def _add_pairing_features(df: pd.DataFrame) -> pd.DataFrame:
         .first()[["pitcher", "pitch_type"]]
         .rename(columns={"pitch_type": "primary_pitch"})
     )
-    primary_metrics = arsenal.merge(
-        primary, left_on=["pitcher", "pitch_type"], right_on=["pitcher", "primary_pitch"]
-    )
-    primary_metrics = primary_metrics.rename(
-        columns={f"avg_{c}": f"pri_{c}" for c in metrics}
-    )[["pitcher", "primary_pitch"] + [f"pri_{c}" for c in metrics]]
 
     merged = out.merge(arsenal, on=["pitcher", "pitch_type"], how="left")
-    merged = merged.merge(primary_metrics, on="pitcher", how="left")
+    merged = merged.merge(primary, on="pitcher", how="left")
 
-    merged["pair_velo_sep"] = (
-        merged["avg_release_speed"] - merged["pri_release_speed"]
-    ).abs()
-    merged["pair_mov_sep"] = np.sqrt(
-        (merged["avg_pfx_x"] - merged["pri_pfx_x"]).fillna(0) ** 2
-        + (merged["avg_pfx_z"] - merged["pri_pfx_z"]).fillna(0) ** 2
-    )
-    release_dist = np.sqrt(
-        (merged["avg_release_pos_x"] - merged["pri_release_pos_x"]).fillna(0) ** 2
-        + (merged["avg_release_pos_z"] - merged["pri_release_pos_z"]).fillna(0) ** 2
-    )
-    # Higher = more similar release (tunnel proxy). Cap distance effect.
-    merged["pair_release_sim"] = 1.0 / (1.0 + release_dist)
+    for col in PAIRING_FEATURE_COLS:
+        merged[col] = np.nan
 
-    # Same as primary → separations near 0, similarity 1.
-    is_primary = merged["pitch_type"] == merged["primary_pitch"]
-    merged.loc[is_primary, "pair_velo_sep"] = 0.0
-    merged.loc[is_primary, "pair_mov_sep"] = 0.0
-    merged.loc[is_primary, "pair_release_sim"] = 1.0
+    for pitcher_id, idx in merged.groupby("pitcher").groups.items():
+        sub = merged.loc[idx]
+        means = pitcher_arsenal_means(sub, metrics=metrics)
+        primary_pt = primary_pitch_type(sub)
+        if primary_pt is None or means.empty:
+            continue
+        for row_idx, pt in zip(sub.index, sub["pitch_type"], strict=False):
+            feats = pairing_features_for_type(means, primary_pt, str(pt))
+            for col, val in feats.items():
+                merged.at[row_idx, col] = val
 
-    for col in ("pair_velo_sep", "pair_mov_sep", "pair_release_sim"):
+    for col in PAIRING_FEATURE_COLS:
         merged[col] = merged[col].fillna(merged[col].median())
     return merged
 
@@ -749,7 +944,6 @@ def _expected_values(
     arsenal: list[str],
 ) -> pd.DataFrame:
     """Average predicted RV/xwOBA for each arsenal pitch under segment contexts."""
-    # Sample contexts to keep inference snappy on large segments.
     ctx = seg
     if len(ctx) > 400:
         ctx = ctx.sample(n=400, random_state=42)
@@ -759,19 +953,28 @@ def _expected_values(
         base[col] = pd.to_numeric(base[col], errors="coerce")
     base = base.fillna(base.median(numeric_only=True)).fillna(0.0)
 
+    arsenal_means = pitcher_arsenal_means(seg)
+    primary = primary_pitch_type(seg)
+
     rows = []
     for pt in arsenal:
         feat = base.copy()
         for other in model.pitch_types:
             feat[f"{PITCH_ONEHOT_PREFIX}{other}"] = 0
-        # Ensure arsenal pitch one-hot exists even if rare league-wide.
         col = f"{PITCH_ONEHOT_PREFIX}{pt}"
         if col not in feat.columns:
             feat[col] = 0
         feat[col] = 1
-        # Adjust sequence flags relative to previous pitch.
         if "prev_pitch_type" in ctx.columns:
             feat["prev_same_pitch"] = (ctx["prev_pitch_type"].to_numpy() == pt).astype(int)
+        if not arsenal_means.empty and primary:
+            for shape_col in PITCH_SHAPE_FEATURE_COLS:
+                if shape_col in arsenal_means.columns and pt in arsenal_means.index:
+                    feat[shape_col] = float(arsenal_means.loc[pt, shape_col])
+            for pair_col, val in pairing_features_for_type(
+                arsenal_means, primary, pt
+            ).items():
+                feat[pair_col] = val
         pred_rv = model.predict_rv(feat)
         pred_x = model.predict_xwoba(feat)
         rows.append(
@@ -871,35 +1074,17 @@ def _solve_usage(
 
 
 def _pairing_notes(df: pd.DataFrame, arsenal: list[str]) -> list[str]:
+    means = pitcher_arsenal_means(df)
+    primary = primary_pitch_type(df)
+    if means.empty or primary is None or primary not in means.index:
+        return []
     notes: list[str] = []
-    cols = ["release_speed", "pfx_x", "pfx_z", "release_pos_x", "release_pos_z"]
-    for c in cols:
-        if c not in df.columns:
-            return notes
-    means = df.groupby("pitch_type")[cols].mean()
-    primary = df["pitch_type"].value_counts().idxmax()
-    if primary not in means.index:
-        return notes
-    p = means.loc[primary]
     for pt in arsenal:
         if pt == primary or pt not in means.index:
             continue
-        row = means.loc[pt]
-        velo = abs(float(row["release_speed"] - p["release_speed"]))
-        mov = float(
-            np.sqrt((row["pfx_x"] - p["pfx_x"]) ** 2 + (row["pfx_z"] - p["pfx_z"]) ** 2)
-        )
-        rel = float(
-            np.sqrt(
-                (row["release_pos_x"] - p["release_pos_x"]) ** 2
-                + (row["release_pos_z"] - p["release_pos_z"]) ** 2
-            )
-        )
-        tunnel = "strong tunnel" if rel < 0.25 else ("moderate tunnel" if rel < 0.45 else "distinct release")
-        notes.append(
-            f"{pt} vs primary {primary}: velo sep {velo:.1f} mph, "
-            f"move sep {mov:.1f} in, release {tunnel} ({rel:.2f} ft)"
-        )
+        note = pairing_note_for_type(means, primary, pt)
+        if note:
+            notes.append(note)
     return notes
 
 

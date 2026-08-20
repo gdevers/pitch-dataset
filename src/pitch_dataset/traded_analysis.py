@@ -10,7 +10,16 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from pitch_dataset.arsenal import EXCLUDED_PITCH_TYPES, arsenal_pitch_types
+from pitch_dataset.arsenal import (
+    EXCLUDED_PITCH_TYPES,
+    SHAPE_METRIC_COLS,
+    _euclidean_sep,
+    arsenal_pitch_types,
+    pairing_features_for_type,
+    pairing_note_for_type,
+    pitcher_arsenal_means,
+    primary_pitch_type,
+)
 
 DEFAULT_TRADED_PITCHERS: list[dict[str, Any]] = [
     {
@@ -55,23 +64,6 @@ DEFAULT_TRADED_PITCHERS: list[dict[str, Any]] = [
     },
 ]
 
-SHAPE_METRIC_COLS = [
-    "release_speed",
-    "effective_speed",
-    "release_extension",
-    "release_spin_rate",
-    "spin_axis",
-    "arm_angle",
-    "release_pos_x",
-    "release_pos_y",
-    "release_pos_z",
-    "pfx_x",
-    "pfx_z",
-    "api_break_x_arm",
-    "api_break_x_batter_in",
-    "api_break_z_with_gravity",
-]
-
 SHAPE_METRIC_LABELS: dict[str, str] = {
     "release_speed": "Release speed (mph)",
     "effective_speed": "Effective speed (mph)",
@@ -113,14 +105,13 @@ class PairingMetric:
     release_dist_ft: float
     release_sim: float
     tunnel: str
-
-    @property
-    def note(self) -> str:
-        return (
-            f"{self.pitch_type} vs primary {self.primary}: velo sep {self.velo_sep:.1f} mph, "
-            f"move sep {self.mov_sep:.1f} in, release {self.tunnel} "
-            f"({self.release_dist_ft:.2f} ft)"
-        )
+    eff_speed_sep: float = 0.0
+    spin_sep: float = 0.0
+    spin_axis_sep: float = 0.0
+    arm_sep: float = 0.0
+    extension_sep: float = 0.0
+    break_sep: float = 0.0
+    note: str = ""
 
 
 @dataclass
@@ -206,36 +197,29 @@ def compute_pairing_metrics(
     *,
     min_n: int = 15,
 ) -> tuple[list[PairingMetric], str | None]:
-    """Pairing/tunnel metrics using the same logic as ``arsenal._pairing_notes``."""
+    """Pairing/tunnel metrics using shared ``arsenal`` helpers."""
     pts = arsenal_pitch_types(sub, min_n=min_n)
     if len(pts) < 2:
         pts = arsenal_pitch_types(sub, min_n=5)
     if not pts or sub.empty:
         return [], None
 
-    primary = sub["pitch_type"].value_counts().idxmax()
-    cols = ["release_speed", "pfx_x", "pfx_z", "release_pos_x", "release_pos_z"]
-    means = sub.groupby("pitch_type")[cols].mean(numeric_only=True)
-    if primary not in means.index:
+    means = pitcher_arsenal_means(sub)
+    primary = primary_pitch_type(sub)
+    if means.empty or primary is None or primary not in means.index:
         return [], None
 
-    pri = means.loc[primary]
+    rel_cols = [c for c in ("release_pos_x", "release_pos_y", "release_pos_z") if c in means.columns]
     pairs: list[PairingMetric] = []
     for pt in pts:
         if pt == primary or pt not in means.index:
             continue
+        feats = pairing_features_for_type(means, primary, pt)
+        pri = means.loc[primary]
         row = means.loc[pt]
-        velo = abs(float(row["release_speed"] - pri["release_speed"]))
-        mov = float(
-            np.sqrt((row["pfx_x"] - pri["pfx_x"]) ** 2 + (row["pfx_z"] - pri["pfx_z"]) ** 2)
-        )
-        rel = float(
-            np.sqrt(
-                (row["release_pos_x"] - pri["release_pos_x"]) ** 2
-                + (row["release_pos_z"] - pri["release_pos_z"]) ** 2
-            )
-        )
-        release_sim = 1.0 / (1.0 + rel)
+        rel = 0.0
+        if rel_cols:
+            rel = _euclidean_sep(row, pri, rel_cols)
         tunnel = (
             "strong tunnel"
             if rel < 0.25
@@ -245,11 +229,18 @@ def compute_pairing_metrics(
             PairingMetric(
                 pitch_type=pt,
                 primary=primary,
-                velo_sep=round(velo, 1),
-                mov_sep=round(mov, 1),
+                velo_sep=round(feats["pair_velo_sep"], 1),
+                mov_sep=round(feats["pair_mov_sep"], 1),
                 release_dist_ft=round(rel, 2),
-                release_sim=round(release_sim, 3),
+                release_sim=round(feats["pair_release_sim"], 3),
                 tunnel=tunnel,
+                eff_speed_sep=round(feats["pair_eff_speed_sep"], 1),
+                spin_sep=round(feats["pair_spin_sep"], 0),
+                spin_axis_sep=round(feats["pair_spin_axis_sep"], 0),
+                arm_sep=round(feats["pair_arm_sep"], 1),
+                extension_sep=round(feats["pair_extension_sep"], 2),
+                break_sep=round(feats["pair_break_sep"], 1),
+                note=pairing_note_for_type(means, primary, pt),
             )
         )
     return pairs, primary
@@ -358,9 +349,9 @@ def format_traded_report(
         [
             "Pre/post splits use **trade date** cutoffs and **pitcher team** derived from "
             "`inning_topbot` + home/away. Shape metrics include arm angle, release point, "
-            "spin, extension, movement, and API break fields beyond the arsenal outcome model. "
-            "Pairing/tunnel notes reuse `pair_velo_sep`, `pair_mov_sep`, and release-distance "
-            "logic from `arsenal.py`.",
+            "Pairing/tunnel notes reuse extended separation logic from `arsenal.py` "
+            "(velo/movement, effective speed, spin, arm angle, extension, API break, "
+            "3D release distance).",
             "",
         ]
     )

@@ -174,21 +174,22 @@
     <h1>Pitch Arsenal Optimization</h1>
     <p class="meta">
       Constrained optimal pitch-type mix minimizing predicted pitch-level xwOBA.
+      Extended shape features (arm angle, spin, extension, API break, 3D release).
       Trained/scored on MLB 2026-03-25 → 2026-08-13 (n=491,230).
     </p>
 
-    <h2>Dylan Cease · overall expected xwOBA −0.006</h2>
+    <h2>Dylan Cease · overall expected xwOBA −0.004</h2>
     <div class="hero">
       <div class="stat">
-        <div class="v">0.286 → 0.280</div>
+        <div class="v">0.283 → 0.279</div>
         <div class="l">Expected xwOBA</div>
       </div>
       <div class="stat">
-        <div class="v">−0.0063</div>
+        <div class="v">−0.0044</div>
         <div class="l">ΔxwOBA (lower is better)</div>
       </div>
       <div class="stat">
-        <div class="v">+0.0057 → +0.0036</div>
+        <div class="v">+0.0044 → +0.0017</div>
         <div class="l">Expected RV / pitch</div>
       </div>
       <div class="stat">
@@ -203,15 +204,15 @@
         <span><span class="swatch" style="background:var(--bar-cur)"></span>Current</span>
         <span><span class="swatch" style="background:var(--bar-rec)"></span>Recommended</span>
       </div>
-      <!-- max axis 40% for readability -->
-      <div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar cur" style="width:91.25%"></div><div class="bar rec" style="width:53.75%"></div></div><div>36→22</div></div>
-      <div class="row"><div>KC · KnCurve</div><div class="bars"><div class="bar cur" style="width:23.75%"></div><div class="bar rec" style="width:61.25%"></div></div><div>10→24</div></div>
-      <div class="row"><div>CH · Change</div><div class="bars"><div class="bar cur" style="width:28.25%"></div><div class="bar rec" style="width:10.25%"></div></div><div>11→4</div></div>
-      <div class="row"><div>SL · Slider</div><div class="bars"><div class="bar cur" style="width:74.50%"></div><div class="bar rec" style="width:90.50%"></div></div><div>30→36</div></div>
-      <div class="row"><div>ST · Sweeper</div><div class="bars"><div class="bar cur" style="width:10.75%"></div><div class="bar rec" style="width:26.50%"></div></div><div>4→11</div></div>
-      <div class="row"><div>SI · Sinker</div><div class="bars"><div class="bar cur" style="width:21.50%"></div><div class="bar rec" style="width:7.50%"></div></div><div>9→3</div></div>
-      <div class="axis"><span>Pitch type</span><span>Usage share (bar scale 0–40%)</span></div>
-      <p class="caption">Source: pitch-dataset outcome model · MLB 2026-03-25→08-13 · max shift ±15 pp · reports/example_cease.md</p>
+      <!-- max axis 45% for readability -->
+      <div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar cur" style="width:81.1%"></div><div class="bar rec" style="width:47.8%"></div></div><div>37→22</div></div>
+      <div class="row"><div>SL · Slider</div><div class="bars"><div class="bar cur" style="width:66.2%"></div><div class="bar rec" style="width:99.6%"></div></div><div>30→45</div></div>
+      <div class="row"><div>KC · KnCurve</div><div class="bars"><div class="bar cur" style="width:21.1%"></div><div class="bar rec" style="width:37.3%"></div></div><div>10→17</div></div>
+      <div class="row"><div>CH · Change</div><div class="bars"><div class="bar cur" style="width:25.1%"></div><div class="bar rec" style="width:9.1%"></div></div><div>11→4</div></div>
+      <div class="row"><div>ST · Sweeper</div><div class="bars"><div class="bar cur" style="width:9.6%"></div><div class="bar rec" style="width:21.6%"></div></div><div>4→10</div></div>
+      <div class="row"><div>SI · Sinker</div><div class="bars"><div class="bar cur" style="width:19.1%"></div><div class="bar rec" style="width:6.7%"></div></div><div>9→3</div></div>
+      <div class="axis"><span>Pitch type</span><span>Usage share (bar scale 0–45%)</span></div>
+      <p class="caption">Source: pitch-dataset outcome model (52 features) · MLB 2026-03-25→08-13 · max shift ±15 pp · reports/example_cease.md</p>
     </div>
 
     <h3>Usage deltas (overall)</h3>
@@ -226,22 +227,22 @@
       </thead>
       <tbody>
         <tr><td>FF · 4-Seam</td><td>36.5</td><td>21.5</td><td class="neg">−15.0 pp</td></tr>
-        <tr><td>KC · Knuckle Curve</td><td>9.5</td><td>24.5</td><td class="pos">+15.0 pp</td></tr>
+        <tr><td>SL · Slider</td><td>29.8</td><td>44.8</td><td class="pos">+15.0 pp</td></tr>
+        <tr><td>KC · Knuckle Curve</td><td>9.5</td><td>16.8</td><td class="pos">+7.3 pp</td></tr>
         <tr><td>CH · Changeup</td><td>11.3</td><td>4.1</td><td class="neg">−7.1 pp</td></tr>
-        <tr><td>SL · Slider</td><td>29.8</td><td>36.2</td><td class="pos">+6.4 pp</td></tr>
-        <tr><td>ST · Sweeper</td><td>4.3</td><td>10.6</td><td class="pos">+6.3 pp</td></tr>
+        <tr><td>ST · Sweeper</td><td>4.3</td><td>9.7</td><td class="pos">+5.4 pp</td></tr>
         <tr><td>SI · Sinker</td><td>8.6</td><td>3.0</td><td class="neg">−5.6 pp</td></tr>
       </tbody>
     </table>
-    <p class="caption">Platoon detail: vs LHH increase SL/KC, cut FF/CH; vs RHH increase ST/KC, cut FF/SI. See markdown reports for count-state splits.</p>
+    <p class="caption">Platoon detail: vs LHH increase SL/KC, cut FF/CH; vs RHH increase SL/ST, cut FF/SI. Prior model (−0.006 ΔxwOBA) leaned harder on KC; extended shape features shift mass toward SL.</p>
 
-    <h3>Arsenal pairing context (≥5 pp shifts)</h3>
+    <h3>Arsenal pairing context (extended shape separations)</h3>
     <ul class="pair">
-      <li>SL vs primary FF: velo sep 8.3 mph, move sep 1.3 in, release strong tunnel (0.15 ft)</li>
-      <li>CH vs primary FF: velo sep 15.0 mph, move sep 0.5 in, release strong tunnel (0.10 ft)</li>
-      <li>KC vs primary FF: velo sep 15.0 mph, move sep 2.7 in, release strong tunnel (0.06 ft)</li>
-      <li>SI vs primary FF: velo sep 1.3 mph, move sep 0.8 in, release strong tunnel (0.16 ft)</li>
-      <li>ST vs primary FF: velo sep 13.7 mph, move sep 2.6 in, release moderate tunnel (0.38 ft)</li>
+      <li>SL vs primary FF: velo sep 8.3 mph, move sep 1.3 in, eff speed sep 8.1 mph, spin sep 243 rpm, spin axis sep 66°, arm angle sep 2.3°, extension sep 0.05 ft, API break sep 1.8 in, release strong tunnel (0.15 ft)</li>
+      <li>CH vs primary FF: velo sep 15.0 mph, move sep 0.5 in, eff speed sep 14.6 mph, spin sep 706 rpm, spin axis sep 4°, arm angle sep 6.9°, extension sep 0.15 ft, API break sep 1.4 in, release strong tunnel (0.18 ft)</li>
+      <li>KC vs primary FF: velo sep 15.0 mph, move sep 2.7 in, eff speed sep 15.1 mph, spin sep 225 rpm, spin axis sep 172°, arm angle sep 3.2°, extension sep 0.04 ft, API break sep 3.7 in, release strong tunnel (0.07 ft)</li>
+      <li>SI vs primary FF: velo sep 1.3 mph, move sep 0.8 in, eff speed sep 1.2 mph, spin sep 72 rpm, spin axis sep 4°, arm angle sep 2.1°, extension sep 0.01 ft, API break sep 0.9 in, release strong tunnel (0.16 ft)</li>
+      <li>ST vs primary FF: velo sep 13.7 mph, move sep 2.6 in, eff speed sep 14.1 mph, spin sep 374 rpm, spin axis sep 161°, arm angle sep 5.5°, extension sep 0.11 ft, API break sep 3.4 in, release moderate tunnel (0.40 ft)</li>
     </ul>
 
     <h2>Top-3 by modeled volume · expected ΔxwOBA</h2>
@@ -249,19 +250,19 @@
       <div class="cmp">
         <div>Sandy Alcantara</div>
         <div class="track"><div class="fill" style="width:100%"></div></div>
-        <div class="neg">−0.0073</div>
-      </div>
-      <div class="cmp">
-        <div>Cristopher Sánchez</div>
-        <div class="track"><div class="fill" style="width:59%"></div></div>
-        <div class="neg">−0.0043</div>
+        <div class="neg">−0.0060</div>
       </div>
       <div class="cmp">
         <div>Kevin Gausman</div>
-        <div class="track"><div class="fill" style="width:55%"></div></div>
+        <div class="track"><div class="fill" style="width:67%"></div></div>
         <div class="neg">−0.0040</div>
       </div>
-      <p class="caption">Source: same model cohort · reports/example_top3.md · bar length scaled to |ΔxwOBA|</p>
+      <div class="cmp">
+        <div>Cristopher Sánchez</div>
+        <div class="track"><div class="fill" style="width:33%"></div></div>
+        <div class="neg">−0.0020</div>
+      </div>
+      <p class="caption">Source: same extended model · reports/example_top3.md · bar length scaled to |ΔxwOBA| (max = Alcantara)</p>
     </div>
   </main>
 </body>

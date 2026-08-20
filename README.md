@@ -86,7 +86,13 @@ For each pitcher, the model:
 2. Compares **actual usage** to a **constrained optimal mix** (keep existing arsenal pitches; min/max %; max shift from current).
 3. Emits recommendations like: *Reduce SL vs LHH from 23% → 11%; increase CH to 35%; expected improvement: -0.004 xwOBA.*
 
-Context includes platoon (`p_throws`/`stand`), count, zone/location, times-through-order, previous pitch (sequencing), batter prior xwOBA, and light **pitch-pairing** signals (velo separation, movement separation, release similarity / tunnel proxy) as features and report notes — not a separate product.
+Context includes platoon (`p_throws`/`stand`), count, zone/location, times-through-order, previous pitch (sequencing), batter prior xwOBA, and **extended pitch-shape + pairing** signals — not a separate product.
+
+**Shape features (pitch-level, per Statcast pitch):** `arm_angle`, `release_spin_rate`, `spin_axis`, `release_extension`, `effective_speed`, `release_pos_y`, `api_break_x_arm`, `api_break_x_batter_in`, `api_break_z_with_gravity`.
+
+**Pairing features (pitcher-level vs primary pitch):** velo/movement separation (existing), plus effective-speed, arm-angle, extension, spin-rate, spin-axis (circular), API-break (3D), and 3D release similarity (`release_pos_x/y/z`). Nulls are median-imputed at train/score time (~98% fill on arm angle; spin/break ~99.5%).
+
+During optimization, candidate pitch types get their pitcher-specific shape means and pairing separations (not the thrown pitch’s raw values).
 
 ### Demo data window
 
@@ -121,7 +127,7 @@ uv run pitch-dataset optimize --top 3 --train-if-missing --report reports/exampl
 | Piece | Approach |
 | --- | --- |
 | Outcome model | Dual `HistGradientBoostingRegressor` targets: `delta_run_exp` and constructed pitch xwOBA |
-| Features | Platoon, count buckets, zone/plate location, TTO, runners, score state, batter prior, prev pitch, pairing metrics, pitch-type one-hots |
+| Features | Platoon, count buckets, zone/plate location, TTO, runners, score state, batter prior, prev pitch, **9 pitch-shape Statcast fields**, **9 pairing separations** (velo/move/spin/arm/extension/break/release), pitch-type one-hots |
 | Optimization | Per pitcher × platoon (and count) segment: SLSQP mix minimizing expected xwOBA under usage constraints |
 | Constraints | Established pitches (≥5%): ±`max_shift` (default 15 pts), floors/caps (`min_pct`/`max_pct`); fringe pitches held fixed |
 
@@ -131,7 +137,7 @@ uv run pitch-dataset optimize --top 3 --train-if-missing --report reports/exampl
 - Holds **location** and game state fixed — only reallocates pitch-type share.
 - Pitch-level xwOBA for takes/whiffs is a heuristic mapping; BIP uses Savant `estimated_woba_using_speedangle` when present.
 - No explicit game-planning, catcher, or health constraints.
-- Pairing/tunnel metrics are descriptive features, not a full tunneling model.
+- Pairing/tunnel metrics are descriptive features (extended with spin, arm angle, extension, API break), not a full tunneling model.
 
 ### Traded deadline analysis
 
@@ -153,12 +159,12 @@ Interactive visual: [`reports/arsenal_optimization.html`](reports/arsenal_optimi
 
 ```text
 ## Cease, Dylan (MLBAM 656302)
-- Overall expected xwOBA: 0.286 → 0.280 (improvement -0.006)
+- Overall expected xwOBA: 0.283 → 0.279 (improvement -0.004)
 
 #### vs LHH
 - INCREASE SL usage from 24% → 39%
 - INCREASE KC usage from 12% → 27%
-Expected improvement: -0.005 xwOBA
+Expected improvement: -0.003 xwOBA
 ```
 
 ### Notebook (recommended read order)
