@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2026 Trade Deadline Pitcher Analysis</title>
+  <style>
+    :root {
+      --bg: #f7f7f5; --fg: #1a1a1a; --muted: #5c5c5c; --line: #d8d8d4;
+      --accent: #1f4b99; --good: #1f6b3a; --card: #ffffff;
+      --bar-pre: #8a8a84; --bar-post: #1f4b99;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.45 "IBM Plex Sans", "Segoe UI", sans-serif; color: var(--fg); background: var(--bg); }
+    main { max-width: 960px; margin: 0 auto; padding: 40px 24px 64px; }
+    h1 { font: 600 28px/1.2 sans-serif; margin: 0 0 8px; letter-spacing: -0.02em; }
+    h2 { font: 600 20px/1.3 sans-serif; margin: 40px 0 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+    h2:first-of-type { border-top: 0; margin-top: 24px; }
+    h3 { font: 600 15px/1.3 sans-serif; margin: 24px 0 8px; }
+    p, .meta { color: var(--muted); margin: 0 0 12px; }
+    nav { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 24px; }
+    nav a { color: var(--accent); text-decoration: none; font-size: 14px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--card); }
+    .hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+    .stat .v { font: 600 18px/1.2 sans-serif; color: var(--accent); }
+    .stat .l { margin-top: 4px; font-size: 12px; color: var(--muted); }
+    .chart { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px 12px; }
+    .row { display: grid; grid-template-columns: 120px 1fr 52px; gap: 8px; align-items: center; margin: 8px 0; font-size: 13px; }
+    .bars { position: relative; height: 28px; }
+    .bar { position: absolute; left: 0; height: 11px; border-radius: 2px; }
+    .bar.pre { top: 2px; background: var(--bar-pre); }
+    .bar.post { bottom: 2px; background: var(--bar-post); }
+    .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+    .swatch.pre { background: var(--bar-pre); }
+    .swatch.post { background: var(--bar-post); }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; font-size: 13px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: right; }
+    th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+    th { background: #efefeb; font-weight: 600; font-size: 12px; }
+    tr:last-child td { border-bottom: 0; }
+    ul.pair { margin: 0 0 12px; padding-left: 18px; color: var(--muted); font-size: 13px; }
+    .neg { color: var(--good); }
+    .pos { color: var(--accent); }
+    .caption { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>2026 Trade Deadline Pitcher Analysis</h1>
+    <p class="meta">_MLB 2026 pitches (2026-03-25 → 2026-08-13, n=491,230). Team affiliation derived from `inning_topbot` + home/away. Post-trade samples are partial through data end date._</p>
+    <nav><a href="#skubal">Skubal</a><a href="#gausman">Gausman</a><a href="#soriano">Soriano</a><a href="#mize">Mize</a><a href="#peralta">Peralta</a></nav>
+    
+<section id="skubal" class="pitcher">
+  <h2>Tarik Skubal · DET → LAD</h2>
+  <p class="meta">Trade 2026-08-01 · MLBAM 669373 · 1,346 pre / 180 post pitches</p>
+  
+  <p class="meta">Primary pitch: <strong>FF</strong> → <strong>SI</strong></p>
+  <div class="hero">
+    <div class="stat"><div class="v">FF → SI</div><div class="l">Primary pitch</div></div>
+    <div class="stat"><div class="v">47.1°</div><div class="l">Season arm angle</div></div>
+    <div class="stat"><div class="v">6.35 ft</div><div class="l">Season extension</div></div>
+    <div class="stat"><div class="v">180</div><div class="l">Post-trade pitches</div></div>
+  </div>
+  <h3>Usage mix pre vs post (%)</h3>
+  <div class="chart">
+    <div class="legend">
+      <span><span class="swatch pre"></span>Pre-trade</span>
+      <span><span class="swatch post"></span>Post-trade</span>
+    </div>
+    <div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar pre" style="width:100.0%"></div><div class="bar post" style="width:68.1%"></div></div><div class="neg">-11.7</div></div><div class="row"><div>CH · Changeup</div><div class="bars"><div class="bar pre" style="width:69.8%"></div><div class="bar post" style="width:78.7%"></div></div><div class="pos">+3.3</div></div><div class="row"><div>SI · Sinker</div><div class="bars"><div class="bar pre" style="width:53.1%"></div><div class="bar post" style="width:84.7%"></div></div><div class="pos">+11.6</div></div><div class="row"><div>SL · Slider</div><div class="bars"><div class="bar pre" style="width:37.6%"></div><div class="bar post" style="width:27.2%"></div></div><div class="neg">-3.8</div></div><div class="row"><div>CU · Curveball</div><div class="bars"><div class="bar pre" style="width:12.3%"></div><div class="bar post" style="width:13.6%"></div></div><div class="pos">+0.5</div></div>
+    <div class="axis"><span>Pitch type</span><span>Share (bar scale normalized to max mix)</span></div>
+  </div>
+  <h3>Pairing / tunnel notes</h3>
+  <p><strong>Pre-trade</strong></p><ul class="pair"><li>CH vs primary FF: velo sep 9.4 mph, move sep 1.3 in, release distinct release (0.49 ft)</li><li>SI vs primary FF: velo sep 0.0 mph, move sep 0.9 in, release strong tunnel (0.19 ft)</li><li>SL vs primary FF: velo sep 7.4 mph, move sep 1.2 in, release distinct release (0.50 ft)</li><li>CU vs primary FF: velo sep 16.5 mph, move sep 2.1 in, release strong tunnel (0.19 ft)</li></ul><p><strong>Post-trade</strong></p><ul class="pair"><li>CH vs primary SI: velo sep 9.1 mph, move sep 0.6 in, release moderate tunnel (0.39 ft)</li><li>FF vs primary SI: velo sep 0.3 mph, move sep 0.9 in, release strong tunnel (0.19 ft)</li><li>SL vs primary SI: velo sep 6.4 mph, move sep 1.4 in, release moderate tunnel (0.32 ft)</li><li>CU vs primary SI: velo sep 16.4 mph, move sep 2.2 in, release strong tunnel (0.10 ft)</li></ul>
+  <h3>Shape highlights (arm angle, release height, extension, spin)</h3>
+  <table>
+    <thead><tr><th>Pitch</th><th>Metric</th><th>Pre</th><th>Post</th><th>Δ</th></tr></thead>
+    <tbody><tr><td>CH · Changeup</td><td>Arm angle (deg)</td><td>42.01</td><td>41.69</td><td>-0.32</td></tr><tr><td>CH · Changeup</td><td>Release height Z (ft)</td><td>6.01</td><td>6.06</td><td>+0.05</td></tr><tr><td>CH · Changeup</td><td>Extension (ft)</td><td>6.28</td><td>6.34</td><td>+0.06</td></tr><tr><td>CH · Changeup</td><td>Spin rate (rpm)</td><td>1824.63</td><td>1874.50</td><td>+49.87</td></tr><tr><td>CU · Curveball</td><td>Arm angle (deg)</td><td>51.18</td><td>51.67</td><td>+0.49</td></tr><tr><td>CU · Curveball</td><td>Release height Z (ft)</td><td>6.17</td><td>6.25</td><td>+0.08</td></tr><tr><td>CU · Curveball</td><td>Extension (ft)</td><td>6.34</td><td>6.40</td><td>+0.06</td></tr><tr><td>CU · Curveball</td><td>Spin rate (rpm)</td><td>2531.73</td><td>2527.67</td><td>-4.06</td></tr><tr><td>FF · 4-Seam</td><td>Arm angle (deg)</td><td>50.79</td><td>51.45</td><td>+0.66</td></tr><tr><td>FF · 4-Seam</td><td>Release height Z (ft)</td><td>6.25</td><td>6.35</td><td>+0.10</td></tr><tr><td>FF · 4-Seam</td><td>Extension (ft)</td><td>6.37</td><td>6.37</td><td>+0.00</td></tr><tr><td>FF · 4-Seam</td><td>Spin rate (rpm)</td><td>2323.67</td><td>2314.16</td><td>-9.51</td></tr><tr><td>SI · Sinker</td><td>Arm angle (deg)</td><td>47.14</td><td>47.98</td><td>+0.84</td></tr><tr><td>SI · Sinker</td><td>Release height Z (ft)</td><td>6.13</td><td>6.20</td><td>+0.07</td></tr><tr><td>SI · Sinker</td><td>Extension (ft)</td><td>6.39</td><td>6.40</td><td>+0.01</td></tr><tr><td>SI · Sinker</td><td>Spin rate (rpm)</td><td>2190.45</td><td>2192.45</td><td>+2.00</td></tr><tr><td>SL · Slider</td><td>Arm angle (deg)</td><td>45.26</td><td>45.59</td><td>+0.33</td></tr><tr><td>SL · Slider</td><td>Release height Z (ft)</td><td>6.03</td><td>6.09</td><td>+0.06</td></tr><tr><td>SL · Slider</td><td>Extension (ft)</td><td>6.38</td><td>6.38</td><td>+0.00</td></tr><tr><td>SL · Slider</td><td>Spin rate (rpm)</td><td>2221.49</td><td>2162.22</td><td>-59.27</td></tr></tbody>
+  </table>
+</section>
+
+<section id="gausman" class="pitcher">
+  <h2>Kevin Gausman · TOR → CHC</h2>
+  <p class="meta">Trade 2026-08-02 · MLBAM 592332 · 2,104 pre / 155 post pitches</p>
+  
+  <p class="meta">Primary pitch: <strong>FF</strong> → <strong>FS</strong></p>
+  <div class="hero">
+    <div class="stat"><div class="v">FF → FS</div><div class="l">Primary pitch</div></div>
+    <div class="stat"><div class="v">37.3°</div><div class="l">Season arm angle</div></div>
+    <div class="stat"><div class="v">6.72 ft</div><div class="l">Season extension</div></div>
+    <div class="stat"><div class="v">155</div><div class="l">Post-trade pitches</div></div>
+  </div>
+  <h3>Usage mix pre vs post (%)</h3>
+  <div class="chart">
+    <div class="legend">
+      <span><span class="swatch pre"></span>Pre-trade</span>
+      <span><span class="swatch post"></span>Post-trade</span>
+    </div>
+    <div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar pre" style="width:100.0%"></div><div class="bar post" style="width:85.7%"></div></div><div class="neg">-7.4</div></div><div class="row"><div>FS · Splitter</div><div class="bars"><div class="bar pre" style="width:73.0%"></div><div class="bar post" style="width:99.4%"></div></div><div class="pos">+13.7</div></div><div class="row"><div>SL · Slider</div><div class="bars"><div class="bar pre" style="width:19.7%"></div><div class="bar post" style="width:7.5%"></div></div><div class="neg">-6.3</div></div>
+    <div class="axis"><span>Pitch type</span><span>Share (bar scale normalized to max mix)</span></div>
+  </div>
+  <h3>Pairing / tunnel notes</h3>
+  <p><strong>Pre-trade</strong></p><ul class="pair"><li>FS vs primary FF: velo sep 9.9 mph, move sep 1.1 in, release strong tunnel (0.22 ft)</li><li>SL vs primary FF: velo sep 9.7 mph, move sep 1.5 in, release strong tunnel (0.19 ft)</li></ul><p><strong>Post-trade</strong></p><ul class="pair"><li>FF vs primary FS: velo sep 9.2 mph, move sep 1.0 in, release moderate tunnel (0.25 ft)</li><li>SL vs primary FS: velo sep 0.4 mph, move sep 1.1 in, release strong tunnel (0.15 ft)</li></ul>
+  <h3>Shape highlights (arm angle, release height, extension, spin)</h3>
+  <table>
+    <thead><tr><th>Pitch</th><th>Metric</th><th>Pre</th><th>Post</th><th>Δ</th></tr></thead>
+    <tbody><tr><td>FF · 4-Seam</td><td>Arm angle (deg)</td><td>39.19</td><td>40.63</td><td>+1.44</td></tr><tr><td>FF · 4-Seam</td><td>Release height Z (ft)</td><td>5.83</td><td>5.82</td><td>-0.01</td></tr><tr><td>FF · 4-Seam</td><td>Extension (ft)</td><td>6.70</td><td>6.88</td><td>+0.18</td></tr><tr><td>FF · 4-Seam</td><td>Spin rate (rpm)</td><td>2275.75</td><td>2329.72</td><td>+53.97</td></tr><tr><td>FS · Splitter</td><td>Arm angle (deg)</td><td>34.87</td><td>34.83</td><td>-0.04</td></tr><tr><td>FS · Splitter</td><td>Release height Z (ft)</td><td>5.69</td><td>5.65</td><td>-0.04</td></tr><tr><td>FS · Splitter</td><td>Extension (ft)</td><td>6.74</td><td>6.87</td><td>+0.13</td></tr><tr><td>FS · Splitter</td><td>Spin rate (rpm)</td><td>1572.18</td><td>1582.12</td><td>+9.94</td></tr><tr><td>SL · Slider</td><td>Arm angle (deg)</td><td>36.40</td><td>—</td><td>—</td></tr><tr><td>SL · Slider</td><td>Release height Z (ft)</td><td>5.69</td><td>5.73</td><td>+0.04</td></tr><tr><td>SL · Slider</td><td>Extension (ft)</td><td>6.68</td><td>6.80</td><td>+0.12</td></tr><tr><td>SL · Slider</td><td>Spin rate (rpm)</td><td>2268.43</td><td>2156.50</td><td>-111.93</td></tr></tbody>
+  </table>
+</section>
+
+<section id="soriano" class="pitcher">
+  <h2>José Soriano · LAA → TOR</h2>
+  <p class="meta">Trade 2026-08-03 · MLBAM 667755 · 1,965 pre / 150 post pitches</p>
+  
+  
+  <div class="hero">
+    <div class="stat"><div class="v">SI → SI</div><div class="l">Primary pitch</div></div>
+    <div class="stat"><div class="v">34.4°</div><div class="l">Season arm angle</div></div>
+    <div class="stat"><div class="v">6.77 ft</div><div class="l">Season extension</div></div>
+    <div class="stat"><div class="v">150</div><div class="l">Post-trade pitches</div></div>
+  </div>
+  <h3>Usage mix pre vs post (%)</h3>
+  <div class="chart">
+    <div class="legend">
+      <span><span class="swatch pre"></span>Pre-trade</span>
+      <span><span class="swatch post"></span>Post-trade</span>
+    </div>
+    <div class="row"><div>SI · Sinker</div><div class="bars"><div class="bar pre" style="width:66.4%"></div><div class="bar post" style="width:100.0%"></div></div><div class="pos">+13.2</div></div><div class="row"><div>KC · Knuckle Curve</div><div class="bars"><div class="bar pre" style="width:65.6%"></div><div class="bar post" style="width:61.1%"></div></div><div class="neg">-1.8</div></div><div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar pre" style="width:60.8%"></div><div class="bar post" style="width:45.8%"></div></div><div class="neg">-5.9</div></div><div class="row"><div>FS · Splitter</div><div class="bars"><div class="bar pre" style="width:49.4%"></div><div class="bar post" style="width:44.0%"></div></div><div class="neg">-2.1</div></div><div class="row"><div>SL · Slider</div><div class="bars"><div class="bar pre" style="width:12.2%"></div><div class="bar post" style="width:0.0%"></div></div><div class="neg">-4.8</div></div>
+    <div class="axis"><span>Pitch type</span><span>Share (bar scale normalized to max mix)</span></div>
+  </div>
+  <h3>Pairing / tunnel notes</h3>
+  <p><strong>Pre-trade</strong></p><ul class="pair"><li>KC vs primary SI: velo sep 11.1 mph, move sep 2.4 in, release moderate tunnel (0.31 ft)</li><li>FF vs primary SI: velo sep 0.8 mph, move sep 0.9 in, release strong tunnel (0.02 ft)</li><li>FS vs primary SI: velo sep 4.0 mph, move sep 0.2 in, release strong tunnel (0.03 ft)</li><li>SL vs primary SI: velo sep 6.2 mph, move sep 1.3 in, release strong tunnel (0.15 ft)</li></ul><p><strong>Post-trade</strong></p><ul class="pair"><li>KC vs primary SI: velo sep 10.2 mph, move sep 2.5 in, release moderate tunnel (0.36 ft)</li><li>FF vs primary SI: velo sep 0.6 mph, move sep 0.9 in, release strong tunnel (0.02 ft)</li><li>FS vs primary SI: velo sep 3.8 mph, move sep 0.1 in, release strong tunnel (0.07 ft)</li></ul>
+  <h3>Shape highlights (arm angle, release height, extension, spin)</h3>
+  <table>
+    <thead><tr><th>Pitch</th><th>Metric</th><th>Pre</th><th>Post</th><th>Δ</th></tr></thead>
+    <tbody><tr><td>FF · 4-Seam</td><td>Arm angle (deg)</td><td>32.06</td><td>37.90</td><td>+5.84</td></tr><tr><td>FF · 4-Seam</td><td>Release height Z (ft)</td><td>5.72</td><td>5.80</td><td>+0.08</td></tr><tr><td>FF · 4-Seam</td><td>Extension (ft)</td><td>6.75</td><td>6.70</td><td>-0.05</td></tr><tr><td>FF · 4-Seam</td><td>Spin rate (rpm)</td><td>2184.82</td><td>2176.85</td><td>-7.97</td></tr><tr><td>FS · Splitter</td><td>Arm angle (deg)</td><td>32.99</td><td>36.30</td><td>+3.31</td></tr><tr><td>FS · Splitter</td><td>Release height Z (ft)</td><td>5.68</td><td>5.76</td><td>+0.08</td></tr><tr><td>FS · Splitter</td><td>Extension (ft)</td><td>6.81</td><td>6.79</td><td>-0.02</td></tr><tr><td>FS · Splitter</td><td>Spin rate (rpm)</td><td>1611.97</td><td>1707.73</td><td>+95.76</td></tr><tr><td>KC · Knuckle Curve</td><td>Arm angle (deg)</td><td>39.29</td><td>41.52</td><td>+2.23</td></tr><tr><td>KC · Knuckle Curve</td><td>Release height Z (ft)</td><td>5.88</td><td>6.01</td><td>+0.13</td></tr><tr><td>KC · Knuckle Curve</td><td>Extension (ft)</td><td>6.76</td><td>6.80</td><td>+0.04</td></tr><tr><td>KC · Knuckle Curve</td><td>Spin rate (rpm)</td><td>2356.63</td><td>2347.28</td><td>-9.35</td></tr><tr><td>SI · Sinker</td><td>Arm angle (deg)</td><td>32.07</td><td>39.03</td><td>+6.96</td></tr><tr><td>SI · Sinker</td><td>Release height Z (ft)</td><td>5.71</td><td>5.82</td><td>+0.11</td></tr><tr><td>SI · Sinker</td><td>Extension (ft)</td><td>6.77</td><td>6.75</td><td>-0.02</td></tr><tr><td>SI · Sinker</td><td>Spin rate (rpm)</td><td>1926.40</td><td>1929.24</td><td>+2.84</td></tr><tr><td>SL · Slider</td><td>Arm angle (deg)</td><td>35.37</td><td>—</td><td>—</td></tr><tr><td>SL · Slider</td><td>Release height Z (ft)</td><td>5.78</td><td>—</td><td>—</td></tr><tr><td>SL · Slider</td><td>Extension (ft)</td><td>6.80</td><td>—</td><td>—</td></tr><tr><td>SL · Slider</td><td>Spin rate (rpm)</td><td>2338.80</td><td>—</td><td>—</td></tr></tbody>
+  </table>
+</section>
+
+<section id="mize" class="pitcher">
+  <h2>Casey Mize · DET → SD</h2>
+  <p class="meta">Trade 2026-08-03 · MLBAM 663554 · 1,264 pre / 160 post pitches</p>
+  
+  
+  <div class="hero">
+    <div class="stat"><div class="v">FF → FF</div><div class="l">Primary pitch</div></div>
+    <div class="stat"><div class="v">43.9°</div><div class="l">Season arm angle</div></div>
+    <div class="stat"><div class="v">6.81 ft</div><div class="l">Season extension</div></div>
+    <div class="stat"><div class="v">160</div><div class="l">Post-trade pitches</div></div>
+  </div>
+  <h3>Usage mix pre vs post (%)</h3>
+  <div class="chart">
+    <div class="legend">
+      <span><span class="swatch pre"></span>Pre-trade</span>
+      <span><span class="swatch post"></span>Post-trade</span>
+    </div>
+    <div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar pre" style="width:100.0%"></div><div class="bar post" style="width:95.3%"></div></div><div class="neg">-1.6</div></div><div class="row"><div>SL · Slider</div><div class="bars"><div class="bar pre" style="width:78.3%"></div><div class="bar post" style="width:88.0%"></div></div><div class="pos">+3.3</div></div><div class="row"><div>FS · Splitter</div><div class="bars"><div class="bar pre" style="width:68.6%"></div><div class="bar post" style="width:64.2%"></div></div><div class="neg">-1.5</div></div><div class="row"><div>SI · Sinker</div><div class="bars"><div class="bar pre" style="width:31.7%"></div><div class="bar post" style="width:32.8%"></div></div><div class="pos">+0.4</div></div><div class="row"><div>SV · Slurve</div><div class="bars"><div class="bar pre" style="width:14.7%"></div><div class="bar post" style="width:12.9%"></div></div><div class="neg">-0.6</div></div>
+    <div class="axis"><span>Pitch type</span><span>Share (bar scale normalized to max mix)</span></div>
+  </div>
+  <h3>Pairing / tunnel notes</h3>
+  <p><strong>Pre-trade</strong></p><ul class="pair"><li>SL vs primary FF: velo sep 5.8 mph, move sep 1.5 in, release moderate tunnel (0.41 ft)</li><li>FS vs primary FF: velo sep 5.6 mph, move sep 1.1 in, release strong tunnel (0.21 ft)</li><li>SI vs primary FF: velo sep 0.1 mph, move sep 0.4 in, release strong tunnel (0.07 ft)</li><li>SV vs primary FF: velo sep 12.0 mph, move sep 2.8 in, release distinct release (0.50 ft)</li></ul><p><strong>Post-trade</strong></p><ul class="pair"><li>SL vs primary FF: velo sep 5.7 mph, move sep 1.6 in, release moderate tunnel (0.38 ft)</li><li>FS vs primary FF: velo sep 5.0 mph, move sep 1.1 in, release strong tunnel (0.19 ft)</li><li>SI vs primary FF: velo sep 0.5 mph, move sep 0.4 in, release strong tunnel (0.06 ft)</li><li>SV vs primary FF: velo sep 11.8 mph, move sep 2.7 in, release distinct release (0.46 ft)</li></ul>
+  <h3>Shape highlights (arm angle, release height, extension, spin)</h3>
+  <table>
+    <thead><tr><th>Pitch</th><th>Metric</th><th>Pre</th><th>Post</th><th>Δ</th></tr></thead>
+    <tbody><tr><td>FF · 4-Seam</td><td>Arm angle (deg)</td><td>46.52</td><td>47.61</td><td>+1.09</td></tr><tr><td>FF · 4-Seam</td><td>Release height Z (ft)</td><td>5.90</td><td>5.95</td><td>+0.05</td></tr><tr><td>FF · 4-Seam</td><td>Extension (ft)</td><td>6.82</td><td>6.81</td><td>-0.01</td></tr><tr><td>FF · 4-Seam</td><td>Spin rate (rpm)</td><td>2269.17</td><td>2250.88</td><td>-18.29</td></tr><tr><td>FS · Splitter</td><td>Arm angle (deg)</td><td>43.10</td><td>44.38</td><td>+1.28</td></tr><tr><td>FS · Splitter</td><td>Release height Z (ft)</td><td>5.78</td><td>5.85</td><td>+0.07</td></tr><tr><td>FS · Splitter</td><td>Extension (ft)</td><td>6.82</td><td>6.81</td><td>-0.01</td></tr><tr><td>FS · Splitter</td><td>Spin rate (rpm)</td><td>1532.82</td><td>1484.29</td><td>-48.53</td></tr><tr><td>SI · Sinker</td><td>Arm angle (deg)</td><td>44.37</td><td>45.68</td><td>+1.31</td></tr><tr><td>SI · Sinker</td><td>Release height Z (ft)</td><td>5.85</td><td>5.90</td><td>+0.05</td></tr><tr><td>SI · Sinker</td><td>Extension (ft)</td><td>6.82</td><td>6.82</td><td>+0.00</td></tr><tr><td>SI · Sinker</td><td>Spin rate (rpm)</td><td>2305.64</td><td>2310.44</td><td>+4.80</td></tr><tr><td>SL · Slider</td><td>Arm angle (deg)</td><td>41.25</td><td>42.36</td><td>+1.11</td></tr><tr><td>SL · Slider</td><td>Release height Z (ft)</td><td>5.69</td><td>5.74</td><td>+0.05</td></tr><tr><td>SL · Slider</td><td>Extension (ft)</td><td>6.80</td><td>6.83</td><td>+0.03</td></tr><tr><td>SL · Slider</td><td>Spin rate (rpm)</td><td>2240.53</td><td>2232.23</td><td>-8.30</td></tr><tr><td>SV · Slurve</td><td>Arm angle (deg)</td><td>41.20</td><td>42.16</td><td>+0.96</td></tr><tr><td>SV · Slurve</td><td>Release height Z (ft)</td><td>5.66</td><td>5.75</td><td>+0.09</td></tr><tr><td>SV · Slurve</td><td>Extension (ft)</td><td>6.76</td><td>6.74</td><td>-0.02</td></tr><tr><td>SV · Slurve</td><td>Spin rate (rpm)</td><td>2556.17</td><td>2535.00</td><td>-21.17</td></tr></tbody>
+  </table>
+</section>
+
+<section id="peralta" class="pitcher">
+  <h2>Freddy Peralta · NYM → TB</h2>
+  <p class="meta">Trade 2026-08-02 · MLBAM 642547 · 2,042 pre / 169 post pitches</p>
+  
+  
+  <div class="hero">
+    <div class="stat"><div class="v">FF → FF</div><div class="l">Primary pitch</div></div>
+    <div class="stat"><div class="v">33.1°</div><div class="l">Season arm angle</div></div>
+    <div class="stat"><div class="v">6.47 ft</div><div class="l">Season extension</div></div>
+    <div class="stat"><div class="v">169</div><div class="l">Post-trade pitches</div></div>
+  </div>
+  <h3>Usage mix pre vs post (%)</h3>
+  <div class="chart">
+    <div class="legend">
+      <span><span class="swatch pre"></span>Pre-trade</span>
+      <span><span class="swatch post"></span>Post-trade</span>
+    </div>
+    <div class="row"><div>FF · 4-Seam</div><div class="bars"><div class="bar pre" style="width:100.0%"></div><div class="bar post" style="width:91.7%"></div></div><div class="neg">-4.4</div></div><div class="row"><div>CH · Changeup</div><div class="bars"><div class="bar pre" style="width:39.5%"></div><div class="bar post" style="width:64.8%"></div></div><div class="pos">+13.4</div></div><div class="row"><div>CU · Curveball</div><div class="bars"><div class="bar pre" style="width:25.3%"></div><div class="bar post" style="width:20.2%"></div></div><div class="neg">-2.7</div></div><div class="row"><div>ST · Sweeper</div><div class="bars"><div class="bar pre" style="width:10.8%"></div><div class="bar post" style="width:11.2%"></div></div><div class="pos">+0.2</div></div><div class="row"><div>SL · Slider</div><div class="bars"><div class="bar pre" style="width:10.6%"></div><div class="bar post" style="width:0.0%"></div></div><div class="neg">-5.6</div></div><div class="row"><div>CS · Slow Curve</div><div class="bars"><div class="bar pre" style="width:2.6%"></div><div class="bar post" style="width:0.0%"></div></div><div class="neg">-1.4</div></div>
+    <div class="axis"><span>Pitch type</span><span>Share (bar scale normalized to max mix)</span></div>
+  </div>
+  <h3>Pairing / tunnel notes</h3>
+  <p><strong>Pre-trade</strong></p><ul class="pair"><li>CH vs primary FF: velo sep 6.9 mph, move sep 1.4 in, release moderate tunnel (0.44 ft)</li><li>CU vs primary FF: velo sep 14.9 mph, move sep 1.9 in, release strong tunnel (0.07 ft)</li><li>ST vs primary FF: velo sep 12.4 mph, move sep 1.8 in, release strong tunnel (0.21 ft)</li><li>SL vs primary FF: velo sep 11.0 mph, move sep 1.4 in, release moderate tunnel (0.35 ft)</li><li>CS vs primary FF: velo sep 19.2 mph, move sep 2.5 in, release strong tunnel (0.06 ft)</li></ul><p><strong>Post-trade</strong></p><ul class="pair"><li>CH vs primary FF: velo sep 6.8 mph, move sep 1.2 in, release moderate tunnel (0.32 ft)</li><li>CU vs primary FF: velo sep 14.3 mph, move sep 1.8 in, release strong tunnel (0.12 ft)</li><li>ST vs primary FF: velo sep 11.5 mph, move sep 1.6 in, release strong tunnel (0.20 ft)</li></ul>
+  <h3>Shape highlights (arm angle, release height, extension, spin)</h3>
+  <table>
+    <thead><tr><th>Pitch</th><th>Metric</th><th>Pre</th><th>Post</th><th>Δ</th></tr></thead>
+    <tbody><tr><td>CH · Changeup</td><td>Arm angle (deg)</td><td>25.85</td><td>29.70</td><td>+3.85</td></tr><tr><td>CH · Changeup</td><td>Release height Z (ft)</td><td>4.98</td><td>5.02</td><td>+0.04</td></tr><tr><td>CH · Changeup</td><td>Extension (ft)</td><td>6.40</td><td>6.58</td><td>+0.18</td></tr><tr><td>CH · Changeup</td><td>Spin rate (rpm)</td><td>1938.92</td><td>2037.05</td><td>+98.13</td></tr><tr><td>CS · Slow Curve</td><td>Arm angle (deg)</td><td>35.48</td><td>—</td><td>—</td></tr><tr><td>CS · Slow Curve</td><td>Release height Z (ft)</td><td>5.34</td><td>—</td><td>—</td></tr><tr><td>CS · Slow Curve</td><td>Extension (ft)</td><td>6.34</td><td>—</td><td>—</td></tr><tr><td>CS · Slow Curve</td><td>Spin rate (rpm)</td><td>2371.62</td><td>—</td><td>—</td></tr><tr><td>CU · Curveball</td><td>Arm angle (deg)</td><td>35.15</td><td>38.44</td><td>+3.29</td></tr><tr><td>CU · Curveball</td><td>Release height Z (ft)</td><td>5.33</td><td>5.33</td><td>+0.00</td></tr><tr><td>CU · Curveball</td><td>Extension (ft)</td><td>6.43</td><td>6.57</td><td>+0.14</td></tr><tr><td>CU · Curveball</td><td>Spin rate (rpm)</td><td>2288.03</td><td>2259.11</td><td>-28.92</td></tr><tr><td>FF · 4-Seam</td><td>Arm angle (deg)</td><td>35.83</td><td>37.04</td><td>+1.21</td></tr><tr><td>FF · 4-Seam</td><td>Release height Z (ft)</td><td>5.29</td><td>5.24</td><td>-0.05</td></tr><tr><td>FF · 4-Seam</td><td>Extension (ft)</td><td>6.51</td><td>6.59</td><td>+0.08</td></tr><tr><td>FF · 4-Seam</td><td>Spin rate (rpm)</td><td>2423.30</td><td>2407.10</td><td>-16.20</td></tr><tr><td>SL · Slider</td><td>Arm angle (deg)</td><td>28.99</td><td>—</td><td>—</td></tr><tr><td>SL · Slider</td><td>Release height Z (ft)</td><td>5.05</td><td>—</td><td>—</td></tr><tr><td>SL · Slider</td><td>Extension (ft)</td><td>6.44</td><td>—</td><td>—</td></tr><tr><td>SL · Slider</td><td>Spin rate (rpm)</td><td>2345.58</td><td>—</td><td>—</td></tr><tr><td>ST · Sweeper</td><td>Arm angle (deg)</td><td>30.22</td><td>34.03</td><td>+3.81</td></tr><tr><td>ST · Sweeper</td><td>Release height Z (ft)</td><td>5.13</td><td>5.15</td><td>+0.02</td></tr><tr><td>ST · Sweeper</td><td>Extension (ft)</td><td>6.38</td><td>6.44</td><td>+0.06</td></tr><tr><td>ST · Sweeper</td><td>Spin rate (rpm)</td><td>2499.00</td><td>2495.60</td><td>-3.40</td></tr></tbody>
+  </table>
+</section>
+
+    <p class="caption">Source: pitch-dataset traded analysis · pairing/tunnel logic from arsenal.py</p>
+  </main>
+</body>
+</html>

@@ -35,6 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_sample_parser(sub)
     _add_train_parser(sub)
     _add_optimize_parser(sub)
+    _add_traded_parser(sub)
 
     args = parser.parse_args(argv)
     logging.basicConfig(
@@ -50,6 +51,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_train(args)
     if args.command == "optimize":
         return _cmd_optimize(args)
+    if args.command == "traded":
+        return _cmd_traded(args)
 
     parser.error(f"Unknown command: {args.command}")
     return 2
@@ -182,6 +185,44 @@ def _add_optimize_parser(sub: argparse._SubParsersAction) -> None:
     opt.add_argument("--max-shift", type=float, default=0.15)
 
 
+def _add_traded_parser(sub: argparse._SubParsersAction) -> None:
+    traded = sub.add_parser(
+        "traded",
+        help="Pre/post trade-deadline analysis for headline moved pitchers",
+    )
+    traded.add_argument(
+        "--pitchers",
+        type=str,
+        default=None,
+        help="Comma-separated keys or last names (default: top-5 deadline arms)",
+    )
+    traded.add_argument("--season", type=int, default=DEFAULT_SEASON)
+    traded.add_argument(
+        "--league",
+        choices=("mlb", "minors", "all"),
+        default="mlb",
+    )
+    traded.add_argument("--data-dir", type=str, default="data")
+    traded.add_argument(
+        "--report",
+        type=str,
+        default="reports/traded_pitchers.md",
+        help="Markdown report path",
+    )
+    traded.add_argument(
+        "--html",
+        type=str,
+        default="reports/traded_pitchers.html",
+        help="Self-contained HTML visual path",
+    )
+    traded.add_argument(
+        "--json",
+        type=str,
+        default=None,
+        help="Optional JSON export of analysis payload",
+    )
+
+
 def _cmd_pull(args: argparse.Namespace) -> int:
     levels = [part.strip() for part in args.levels.split(",") if part.strip()]
     results = pull_pitches(
@@ -299,6 +340,44 @@ def _cmd_optimize(args: argparse.Namespace) -> int:
     if args.report:
         out = write_recommendation_report(recs, args.report, data_note=data_note)
         print(f"Wrote report -> {out}", file=sys.stderr)
+    return 0
+
+
+def _cmd_traded(args: argparse.Namespace) -> int:
+    from pitch_dataset.traded_analysis import (
+        analyze_traded_pitchers,
+        format_traded_report,
+        write_traded_html,
+        write_traded_json,
+        write_traded_report,
+    )
+
+    pitches = _load_league_frames(args)
+    keys = None
+    if args.pitchers:
+        keys = [part.strip() for part in args.pitchers.split(",") if part.strip()]
+
+    analyses = analyze_traded_pitchers(pitches, keys=keys)
+    if not analyses:
+        raise SystemExit("No matching traded pitchers found in the dataset.")
+
+    date_min = str(pitches["game_date"].min())[:10] if "game_date" in pitches.columns else "?"
+    date_max = str(pitches["game_date"].max())[:10] if "game_date" in pitches.columns else "?"
+    data_note = (
+        f"_MLB {args.season} pitches ({date_min} → {date_max}, n={len(pitches):,}). "
+        "Team affiliation derived from `inning_topbot` + home/away. "
+        "Post-trade samples are partial through data end date._"
+    )
+
+    report = format_traded_report(analyses, data_note=data_note)
+    print(report)
+    out_md = write_traded_report(analyses, args.report, data_note=data_note)
+    out_html = write_traded_html(analyses, args.html, data_note=data_note)
+    print(f"Wrote report -> {out_md}", file=sys.stderr)
+    print(f"Wrote HTML -> {out_html}", file=sys.stderr)
+    if args.json:
+        out_json = write_traded_json(analyses, args.json)
+        print(f"Wrote JSON -> {out_json}", file=sys.stderr)
     return 0
 
 

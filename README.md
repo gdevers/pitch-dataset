@@ -9,6 +9,7 @@ Complete pitch-level **MLB** and **MiLB** Statcast data for insights, dashboards
 Open the static arsenal optimization summary (Cease headline + top-3 ΔxwOBA):
 
 - **In a clone:** open [`reports/arsenal_optimization.html`](reports/arsenal_optimization.html) in your browser (double-click or `open reports/arsenal_optimization.html` on macOS).
+- **Traded deadline:** [`reports/traded_pitchers.html`](reports/traded_pitchers.html) — Skubal, Gausman, Soriano, Mize, Peralta pre/post splits.
 - **On GitHub:** [blob view](https://github.com/gdevers/pitch-dataset/blob/main/reports/arsenal_optimization.html) shows source; GitHub’s HTML preview does **not** run the page JS well. Prefer local open, or GitHub Pages if enabled for this private repo (Pro/Team required for private Pages).
 
 Also listed under [`reports/`](reports/README.md).
@@ -19,7 +20,8 @@ Also listed under [`reports/`](reports/README.md).
 | --- | --- |
 | `notebooks/arsenal_optimization.ipynb` | **Start here** — hiring walkthrough: data → features → outcome model → optimize → example recommendations |
 | `src/pitch_dataset/arsenal.py` | All arsenal logic in one module (features, model, optimize, report) |
-| `src/pitch_dataset/cli.py` | `pull` / `sample` / `train-model` / `optimize` |
+| `src/pitch_dataset/cli.py` | `pull` / `sample` / `train-model` / `optimize` / `traded` |
+| `src/pitch_dataset/traded_analysis.py` | Pre/post trade-deadline usage, shape, pairing/tunnel reports |
 | `reports/arsenal_optimization.html` | **Interactive visual** — open in a browser |
 | `reports/` | Example markdown recommendations (e.g. Cease) |
 | `models/outcome_model.joblib` | Trained demo artifact |
@@ -130,6 +132,20 @@ uv run pitch-dataset optimize --top 3 --train-if-missing --report reports/exampl
 - Pitch-level xwOBA for takes/whiffs is a heuristic mapping; BIP uses Savant `estimated_woba_using_speedangle` when present.
 - No explicit game-planning, catcher, or health constraints.
 - Pairing/tunnel metrics are descriptive features, not a full tunneling model.
+
+### Traded deadline analysis
+
+Pre/post splits for headline deadline arms (usage mix, Statcast shape, pairing/tunnel):
+
+```bash
+# Default top-5: Skubal, Gausman, Soriano, Mize, Peralta
+uv run pitch-dataset traded
+
+# Subset by key or last name
+uv run pitch-dataset traded --pitchers skubal,gausman --report reports/traded_pitchers.md --html reports/traded_pitchers.html
+```
+
+Outputs: `reports/traded_pitchers.md`, `reports/traded_pitchers.html`. Team affiliation is derived from `inning_topbot` + home/away; post-trade samples are partial through the data end date.
 
 ### Example output
 
