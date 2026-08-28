@@ -152,8 +152,43 @@ Outputs:
 
 | File | Contents |
 | --- | --- |
-| `data/pitches_mlb_2026.parquet` | MLB Statcast pitches |
-| `data/pitches_minors_2026.parquet` | MiLB Statcast pitches |
+| `data/pitches_mlb_{season}.parquet` | MLB Statcast pitches |
+| `data/pitches_minors_{season}.parquet` | MiLB Statcast pitches (AAA + A by default) |
+
+## Data inventory
+
+Parquet files live under `data/` and are **gitignored**. Refresh with `uv run pitch-dataset pull` (see commands below). Last updated **2026-08-28**.
+
+### Pitch-level Statcast (Savant)
+
+| File | League | Season | Date range | Pitches | Size |
+| --- | --- | --- | --- | ---: | ---: |
+| `pitches_mlb_2026.parquet` | MLB | 2026 | 2026-03-25 → 2026-08-27 | 593,334 | ~79 MB |
+| `pitches_mlb_2025.parquet` | MLB | 2025 | 2025-03-18 → 2025-11-01 | 726,773 | ~102 MB |
+| `pitches_minors_2026.parquet` | MiLB (AAA, A) | 2026 | 2026-03-27 → 2026-08-27 | 738,388 | ~81 MB |
+
+**Totals (pitch Statcast):** ~2.06M pitches across MLB 2025–2026 and MiLB 2026 season-to-date.
+
+MiLB coverage is sparse outside tracked AAA/A parks; AA, A+, and Rookie levels are supported by the pull CLI but returned no tracked pitches in 2026. Expect gaps on days Savant times out (re-pull specific windows with `--start` / `--end`).
+
+### Refresh commands
+
+```bash
+# Current MLB season through today
+uv run pitch-dataset pull --league mlb --season 2026
+
+# Incremental MLB refresh (merge manually if you only want new dates)
+uv run pitch-dataset pull --league mlb --season 2026 --start 2026-08-28 --end 2026-08-28
+
+# Full prior MLB season (historical depth)
+uv run pitch-dataset pull --league mlb --season 2025
+
+# MiLB season-to-date (all supported levels; AAA + A have tracked data)
+uv run pitch-dataset pull --league minors --season 2026 --levels AAA,AA,A+,A,Rookie
+
+# Retry a failed MiLB window
+uv run pitch-dataset pull --league minors --season 2026 --start 2026-05-08 --end 2026-05-11
+```
 
 ## Pitch arsenal optimization
 
@@ -178,8 +213,8 @@ During optimization, candidate pitch types get their pitcher-specific shape mean
 The committed example reports and `models/outcome_model.joblib` were trained on:
 
 - **League:** MLB
-- **Dates:** 2026-03-25 → 2026-08-13 (season-to-date; pull window 2026-03-20 → 2026-08-14)
-- **Sample size:** 491,230 pitches (~489k after pitch-type filters used in training)
+- **Dates:** 2026-03-25 → 2026-08-27 (season-to-date; pull through 2026-08-28)
+- **Sample size:** ~593k pitches locally (re-pull to refresh; model artifact may lag)
 
 Parquet files stay gitignored under `data/`. Re-pull the season-to-date window to reproduce locally.
 
