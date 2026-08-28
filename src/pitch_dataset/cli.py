@@ -32,6 +32,10 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     _add_pull_parser(sub)
+    _add_pull_api_parser(sub)
+    _add_pull_fangraphs_parser(sub)
+    _add_pull_register_parser(sub)
+    _add_pull_all_parser(sub)
     _add_sample_parser(sub)
     _add_train_parser(sub)
     _add_optimize_parser(sub)
@@ -45,6 +49,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "pull":
         return _cmd_pull(args)
+    if args.command == "pull-api":
+        return _cmd_pull_api(args)
+    if args.command == "pull-fangraphs":
+        return _cmd_pull_fangraphs(args)
+    if args.command == "pull-register":
+        return _cmd_pull_register(args)
+    if args.command == "pull-all":
+        return _cmd_pull_all(args)
     if args.command == "sample":
         return _cmd_sample(args)
     if args.command == "train-model":
@@ -96,6 +108,79 @@ def _add_pull_parser(sub: argparse._SubParsersAction) -> None:
         "--no-write",
         action="store_true",
         help="Skip writing Parquet (return counts only)",
+    )
+
+
+def _add_pull_api_parser(sub: argparse._SubParsersAction) -> None:
+    pull_api = sub.add_parser(
+        "pull-api",
+        help="Pull MLB Stats API schedules, rosters, transactions, and lineups",
+    )
+    pull_api.add_argument("--season", type=int, default=DEFAULT_SEASON)
+    pull_api.add_argument("--start", type=str, default=None, help="YYYY-MM-DD override")
+    pull_api.add_argument("--end", type=str, default=None, help="YYYY-MM-DD override")
+    pull_api.add_argument("--data-dir", type=str, default="data")
+    pull_api.add_argument(
+        "--skip-lineups",
+        action="store_true",
+        help="Skip per-game boxscore lineup pulls (faster)",
+    )
+
+
+def _add_pull_fangraphs_parser(sub: argparse._SubParsersAction) -> None:
+    pull_fg = sub.add_parser(
+        "pull-fangraphs",
+        help="Pull FanGraphs batting/pitching leaderboards and platoon splits",
+    )
+    pull_fg.add_argument("--season", type=int, default=DEFAULT_SEASON)
+    pull_fg.add_argument("--data-dir", type=str, default="data")
+    pull_fg.add_argument(
+        "--skip-splits",
+        action="store_true",
+        help="Skip platoon split leaderboards",
+    )
+
+
+def _add_pull_register_parser(sub: argparse._SubParsersAction) -> None:
+    pull_reg = sub.add_parser(
+        "pull-register",
+        help="Download/cache the Chadwick player ID register",
+    )
+    pull_reg.add_argument("--data-dir", type=str, default="data")
+
+
+def _add_pull_all_parser(sub: argparse._SubParsersAction) -> None:
+    pull_all = sub.add_parser(
+        "pull-all",
+        help=(
+            "Pull Savant pitches plus MLB API, FanGraphs, and Chadwick register "
+            f"(default season {DEFAULT_SEASON})"
+        ),
+    )
+    pull_all.add_argument("--season", type=int, default=DEFAULT_SEASON)
+    pull_all.add_argument(
+        "--league",
+        choices=("mlb", "minors", "all"),
+        default="mlb",
+        help="Savant league(s) to pull (default: mlb)",
+    )
+    pull_all.add_argument("--start", type=str, default=None, help="YYYY-MM-DD override")
+    pull_all.add_argument("--end", type=str, default=None, help="YYYY-MM-DD override")
+    pull_all.add_argument("--data-dir", type=str, default="data")
+    pull_all.add_argument(
+        "--skip-savant",
+        action="store_true",
+        help="Skip Baseball Savant pitch pulls",
+    )
+    pull_all.add_argument(
+        "--skip-lineups",
+        action="store_true",
+        help="Skip MLB API lineup boxscore pulls",
+    )
+    pull_all.add_argument(
+        "--skip-splits",
+        action="store_true",
+        help="Skip FanGraphs platoon split pulls",
     )
 
 
@@ -247,6 +332,88 @@ def _cmd_pull(args: argparse.Namespace) -> int:
             f"{result.league} {result.season}: {result.rows:,} pitches "
             f"({result.start} → {result.end}) -> {loc}"
         )
+    return 0
+
+
+def _cmd_pull_api(args: argparse.Namespace) -> int:
+    from pitch_dataset.mlb_api import make_client, pull_mlb_api
+    from pitch_dataset.storage import mlb_api_path, write_parquet
+
+    with make_client() as client:
+        frames = pull_mlb_api(
+            season=args.season,
+            start=args.start,
+            end=args.end,
+            include_lineups=not args.skip_lineups,
+            client=client,
+        )
+    for kind, frame in frames.items():
+        path = mlb_api_path(args.data_dir, season=args.season, kind=kind)
+        write_parquet(frame, path)
+        print(f"mlb {kind} {args.season}: {len(frame):,} rows -> {path}")
+    return 0
+
+
+def _cmd_pull_fangraphs(args: argparse.Namespace) -> int:
+    from pitch_dataset.fangraphs import make_client, pull_fangraphs
+    from pitch_dataset.storage import fangraphs_path, write_parquet
+
+    with make_client() as client:
+        frames = pull_fangraphs(
+            season=args.season,
+            include_splits=not args.skip_splits,
+            client=client,
+        )
+    for stat_type, frame in frames.items():
+        path = fangraphs_path(args.data_dir, season=args.season, stat_type=stat_type)
+        write_parquet(frame, path)
+        print(f"fangraphs {stat_type} {args.season}: {len(frame):,} rows -> {path}")
+    return 0
+
+
+def _cmd_pull_register(args: argparse.Namespace) -> int:
+    from pitch_dataset.chadwick import pull_chadwick_register
+    from pitch_dataset.storage import chadwick_register_path, write_parquet
+
+    frame = pull_chadwick_register()
+    path = chadwick_register_path(args.data_dir)
+    write_parquet(frame, path)
+    print(f"chadwick register: {len(frame):,} rows -> {path}")
+    return 0
+
+
+def _cmd_pull_all(args: argparse.Namespace) -> int:
+    if not args.skip_savant:
+        pull_args = argparse.Namespace(
+            season=args.season,
+            league=args.league,
+            start=args.start,
+            end=args.end,
+            levels=",".join(DEFAULT_MINOR_LEVELS),
+            data_dir=args.data_dir,
+            chunk_days=1,
+            no_write=False,
+        )
+        _cmd_pull(pull_args)
+
+    api_args = argparse.Namespace(
+        season=args.season,
+        start=args.start,
+        end=args.end,
+        data_dir=args.data_dir,
+        skip_lineups=args.skip_lineups,
+    )
+    _cmd_pull_api(api_args)
+
+    fg_args = argparse.Namespace(
+        season=args.season,
+        data_dir=args.data_dir,
+        skip_splits=args.skip_splits,
+    )
+    _cmd_pull_fangraphs(fg_args)
+
+    reg_args = argparse.Namespace(data_dir=args.data_dir)
+    _cmd_pull_register(reg_args)
     return 0
 
 

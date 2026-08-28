@@ -21,13 +21,80 @@ Also listed under [`reports/`](reports/README.md).
 | --- | --- |
 | `notebooks/arsenal_optimization.ipynb` | **Start here** — hiring walkthrough: data → features → outcome model → optimize → example recommendations |
 | `src/pitch_dataset/arsenal.py` | All arsenal logic in one module (features, model, optimize, report) |
-| `src/pitch_dataset/cli.py` | `pull` / `sample` / `train-model` / `optimize` / `traded` |
+| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `optimize` / `traded` |
+| `src/pitch_dataset/mlb_api.py` | MLB Stats API schedules, rosters, transactions, lineups |
+| `src/pitch_dataset/fangraphs.py` | FanGraphs leaderboards and platoon splits |
+| `src/pitch_dataset/chadwick.py` | Chadwick player ID register |
+| `src/pitch_dataset/joins.py` | Join Savant MLBAM ids → FanGraphs via Chadwick |
 | `src/pitch_dataset/traded_analysis.py` | Pre/post trade-deadline usage, shape, pairing/tunnel reports |
 | `reports/arsenal_optimization.html` | **Interactive visual** — open in a browser |
 | `reports/` | Example markdown recommendations (e.g. Cease) |
 | `models/outcome_model.joblib` | Trained demo artifact |
 
 Dataset plumbing (`pipeline`, `savant`, `storage`, `seasons`) stays separate from the arsenal story.
+
+## Data inventory
+
+All Parquet files live under `data/` (gitignored). Refresh commands below.
+
+| Source | File(s) | Key columns | Refresh |
+| --- | --- | --- | --- |
+| **Baseball Savant** (pitch-level Statcast) | `pitches_mlb_{season}.parquet`, `pitches_minors_{season}.parquet` | `game_pk`, `pitcher`, `batter`, `pitch_type`, `release_speed`, shape fields, `estimated_woba_using_speedangle`, … | `uv run pitch-dataset pull --season 2026` |
+| **MLB Stats API** (schedules) | `mlb_games_{season}.parquet` | `game_pk`, `game_date`, `home_team_id`, `away_team_id`, `status`, scores, venue | `uv run pitch-dataset pull-api --season 2026` |
+| **MLB Stats API** (40-man rosters) | `mlb_rosters_{season}.parquet` | `team_id`, `player_id`, `position_code`, `status_code` | same |
+| **MLB Stats API** (transactions) | `mlb_transactions_{season}.parquet` | `date`, `type_desc`, `player_id`, `team_id`, `from_team_id` | same |
+| **MLB Stats API** (lineups) | `mlb_lineups_{season}.parquet` | `game_pk`, `player_id`, `batting_order`, `position_code`, `is_starter` | same (omit `--skip-lineups`; slower) |
+| **FanGraphs** (season stats) | `fangraphs_batting_{season}.parquet`, `fangraphs_pitching_{season}.parquet` | `IDfg`, `xMLBAMID`, `player_name`, `WAR`, `wOBA`, `FIP`, … | `uv run pitch-dataset pull-fangraphs --season 2026` |
+| **FanGraphs** (platoon splits) | `fangraphs_batting_splits_{season}.parquet`, `fangraphs_pitching_splits_{season}.parquet` | `IDfg`, `wOBA_vs_l` / `wOBA_vs_r`, `FIP_vs_l` / `FIP_vs_r`, … | same (omit `--skip-splits`) |
+| **Chadwick register** (ID crosswalk) | `chadwick_register.parquet` | `key_mlbam`, `key_fangraphs`, `key_bbref`, `name_last`, `name_first` | `uv run pitch-dataset pull-register` |
+
+**Unified refresh** (Savant + API + FanGraphs + Chadwick):
+
+```bash
+uv run pitch-dataset pull-all --season 2026
+# Savant-only variant: add --skip-savant to refresh API/FG/register without re-pulling pitches
+```
+
+Savant vs API: Savant is pitch-level tracking (Statcast); the MLB Stats API adds game context (schedule, lineups, bullpen availability via rosters), transactions, and roster status — not pitch physics.
+
+### Joining Savant ↔ FanGraphs
+
+Savant `pitcher` / `batter` columns are **MLBAM** ids. FanGraphs leaderboards expose `IDfg` and often `xMLBAMID`. Chadwick `key_mlbam` ↔ `key_fangraphs` is the canonical crosswalk when `xMLBAMID` is missing.
+
+```python
+from pitch_dataset.joins import join_pitches_to_fangraphs, load_join_bundle
+from pitch_dataset.storage import read_parquet, chadwick_register_path
+
+bundle = load_join_bundle("data", season=2026)
+pitches_with_fg = join_pitches_to_fangraphs(
+    bundle["pitches"],
+    register=bundle["register"],
+    fangraphs_pitching=bundle["fangraphs_pitching"],
+    role="pitcher",
+)
+
+# Manual join (same keys):
+register = read_parquet(chadwick_register_path("data"))
+pitches = bundle["pitches"]
+linked = pitches.merge(
+    register[["key_mlbam", "key_fangraphs", "name_last", "name_first"]],
+    left_on="pitcher",
+    right_on="key_mlbam",
+    how="left",
+)
+fg = bundle["fangraphs_pitching"][["IDfg", "WAR", "FIP", "wOBA"]]
+linked = linked.merge(fg, left_on="key_fangraphs", right_on="IDfg", how="left")
+```
+
+### What this unlocks
+
+| Model / analysis | Data used |
+| --- | --- |
+| **Bullpen availability** | `mlb_rosters_*` status + `mlb_transactions_*` IL/dfa moves |
+| **Lineup-aware matchups** | `mlb_lineups_*` batting order + Savant platoon (`p_throws`/`stand`) + FG platoon splits |
+| **Transaction impact** | `mlb_transactions_*` joined to Savant pre/post via `player_id` |
+| **WAR / value overlays** | FanGraphs `WAR`, `FIP`, `wOBA` on pitch-level or pitcher rollup via Chadwick |
+| **Cross-source player cards** | Chadwick links MLBAM ↔ FanGraphs ↔ BBRef for unified profiles |
 
 ## Setup
 
@@ -52,6 +119,17 @@ Pull the full season-to-date window (2026 calendar start → today):
 
 ```bash
 uv run pitch-dataset pull
+```
+
+Pull MLB API, FanGraphs, and Chadwick register:
+
+```bash
+uv run pitch-dataset pull-api --season 2026
+uv run pitch-dataset pull-fangraphs --season 2026
+uv run pitch-dataset pull-register
+
+# Or everything at once (Savant + API + FanGraphs + Chadwick):
+uv run pitch-dataset pull-all --season 2026
 ```
 
 Useful variants:
@@ -205,7 +283,10 @@ print(format_recommendation_report(rec))
 
 ## Coverage notes
 
-- **MLB**: pitch-level Statcast via Savant `statcast_search/csv`.
+- **MLB Savant**: pitch-level Statcast via Savant `statcast_search/csv`.
+- **MLB Stats API**: public, no key — schedules, 40-man rosters, transactions, boxscore lineups (`statsapi.mlb.com`).
+- **FanGraphs**: season leaderboards + platoon splits via FanGraphs JSON API (polite rate limiting built in).
+- **Chadwick register**: MLBAM ↔ FanGraphs ↔ BBRef crosswalk via `pybaseball.chadwick_register()`.
 - **Minors**: Savant `statcast-search-minors/csv`. Tracking coverage is strongest for **AAA** and **A** (Savant’s documented levels); other levels may be sparse or empty.
 - Requests are chunked by day to stay under Savant’s CSV size limits.
 - Season end dates clamp to today so in-season refreshes stay current.
