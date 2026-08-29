@@ -113,6 +113,36 @@ CONTEXT_FEATURE_COLS = [
 
 PITCH_ONEHOT_PREFIX = "pt_"
 
+# Batter × pitch-type priors (shifted expanding; used by situational model).
+BATTER_PT_PRIOR_COLS = [
+    "batter_pt_whiff_prior",
+    "batter_pt_chase_prior",
+    "batter_pt_xwoba_prior",
+]
+
+BATTER_PT_PRIOR_DEFAULTS = {
+    "batter_pt_whiff_prior": 0.25,
+    "batter_pt_chase_prior": 0.30,
+    "batter_pt_xwoba_prior": 0.320,
+}
+
+_SWING_DESCRIPTIONS = frozenset(
+    {
+        "swinging_strike",
+        "swinging_strike_blocked",
+        "foul",
+        "foul_tip",
+        "hit_into_play",
+        "hit_into_play_score",
+        "hit_into_play_no_out",
+        "foul_bunt",
+        "missed_bunt",
+        "bunt_foul_tip",
+    }
+)
+_WHIFF_DESCRIPTIONS = frozenset({"swinging_strike", "swinging_strike_blocked"})
+_CHASE_ZONES = frozenset({11, 12, 13, 14})
+
 DEFAULT_MODEL_PATH = Path("models/outcome_model.joblib")
 
 
@@ -215,9 +245,14 @@ def context_row_features(
     *,
     arsenal_means: pd.DataFrame | None = None,
     primary_pitch: str | None = None,
+    batter_pt_priors: pd.DataFrame | None = None,
+    extra_context_cols: Iterable[str] | None = None,
 ) -> pd.DataFrame:
     """Build one feature row per candidate pitch type for a single context."""
+    extra_cols = list(extra_context_cols or [])
     base = {col: row.get(col, 0) for col in CONTEXT_FEATURE_COLS}
+    for col in extra_cols:
+        base[col] = row.get(col, BATTER_PT_PRIOR_DEFAULTS.get(col, 0.0))
     if arsenal_means is not None and primary_pitch:
         primary_row = arsenal_means.loc[primary_pitch] if primary_pitch in arsenal_means.index else None
     else:
@@ -237,6 +272,12 @@ def context_row_features(
             for col in PITCH_SHAPE_FEATURE_COLS:
                 if col in arsenal_means.columns:
                     feat[col] = float(arsenal_means.loc[pt, col])
+        if batter_pt_priors is not None:
+            for col in BATTER_PT_PRIOR_COLS:
+                if col in extra_cols and pt in batter_pt_priors.index and col in batter_pt_priors.columns:
+                    feat[col] = float(batter_pt_priors.loc[pt, col])
+                elif col in extra_cols:
+                    feat[col] = float(BATTER_PT_PRIOR_DEFAULTS[col])
         rows.append(feat)
     return pd.DataFrame(rows)
 
@@ -333,6 +374,70 @@ def _add_hitter_context(df: pd.DataFrame) -> pd.DataFrame:
     prior.index = ordered.index
     out["batter_xwoba_prior"] = prior.reindex(out.index).fillna(0.320)
     return out
+
+
+def add_batter_pitch_type_priors(df: pd.DataFrame) -> pd.DataFrame:
+    """Shifted expanding batter×pitch-type whiff%, chase%, and xwOBA priors."""
+    out = df.copy()
+    for col, default in BATTER_PT_PRIOR_DEFAULTS.items():
+        out[col] = default
+
+    if "batter" not in out.columns or "pitch_type" not in out.columns:
+        return out
+    if "target_xwoba" not in out.columns:
+        return out
+
+    desc = out.get("description", pd.Series("", index=out.index)).fillna("")
+    zone = pd.to_numeric(out.get("zone"), errors="coerce")
+    is_swing = desc.isin(_SWING_DESCRIPTIONS).astype(float)
+    is_whiff = desc.isin(_WHIFF_DESCRIPTIONS).astype(float)
+    is_outside = zone.isin(_CHASE_ZONES).astype(float)
+    is_chase = is_swing * is_outside
+
+    sort_cols = [
+        c
+        for c in ("game_date", "game_pk", "at_bat_number", "pitch_number")
+        if c in out.columns
+    ]
+    ordered = out.sort_values(sort_cols).copy() if sort_cols else out.copy()
+    ordered["_sw"] = is_swing.reindex(ordered.index).to_numpy(dtype=float)
+    ordered["_wh"] = is_whiff.reindex(ordered.index).to_numpy(dtype=float)
+    ordered["_ch"] = is_chase.reindex(ordered.index).to_numpy(dtype=float)
+    ordered["_out"] = is_outside.reindex(ordered.index).to_numpy(dtype=float)
+
+    grp_cols = ["batter", "pitch_type"]
+    grouped = ordered.groupby(grp_cols, sort=False)
+    wh_sum = grouped["_wh"].cumsum().shift(1)
+    sw_sum = grouped["_sw"].cumsum().shift(1)
+    ch_sum = grouped["_ch"].cumsum().shift(1)
+    out_sum = grouped["_out"].cumsum().shift(1)
+
+    whiff = (wh_sum / sw_sum).where(sw_sum >= 5)
+    chase = (ch_sum / out_sum).where(out_sum >= 10)
+
+    shifted_xw = grouped["target_xwoba"].shift(1)
+    xwoba = shifted_xw.groupby([ordered["batter"], ordered["pitch_type"]], sort=False).transform(
+        lambda s: s.expanding(min_periods=10).mean()
+    )
+
+    out["batter_pt_whiff_prior"] = whiff.reindex(out.index).fillna(BATTER_PT_PRIOR_DEFAULTS["batter_pt_whiff_prior"])
+    out["batter_pt_chase_prior"] = chase.reindex(out.index).fillna(BATTER_PT_PRIOR_DEFAULTS["batter_pt_chase_prior"])
+    out["batter_pt_xwoba_prior"] = xwoba.reindex(out.index).fillna(BATTER_PT_PRIOR_DEFAULTS["batter_pt_xwoba_prior"])
+    return out
+
+
+def batter_pitch_type_prior_table(batter_df: pd.DataFrame) -> pd.DataFrame:
+    """Latest batter×pitch-type priors for inference (one row per pitch type)."""
+    if batter_df.empty:
+        return pd.DataFrame(columns=BATTER_PT_PRIOR_COLS)
+    sort_cols = [
+        c
+        for c in ("game_date", "game_pk", "at_bat_number", "pitch_number")
+        if c in batter_df.columns
+    ]
+    frame = batter_df.sort_values(sort_cols) if sort_cols else batter_df
+    table = frame.groupby("pitch_type", as_index=True)[BATTER_PT_PRIOR_COLS].last()
+    return table
 
 
 def _coerce_shape_metrics(df: pd.DataFrame) -> pd.DataFrame:

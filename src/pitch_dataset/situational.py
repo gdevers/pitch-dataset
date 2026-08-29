@@ -21,13 +21,16 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.model_selection import train_test_split
 
 from pitch_dataset.arsenal import (
+    BATTER_PT_PRIOR_COLS,
     CONTEXT_FEATURE_COLS,
     EXCLUDED_PITCH_TYPES,
     PAIRING_FEATURE_COLS,
     PITCH_ONEHOT_PREFIX,
     PITCH_SHAPE_FEATURE_COLS,
     OutcomeModel,
+    add_batter_pitch_type_priors,
     arsenal_pitch_types,
+    batter_pitch_type_prior_table,
     context_row_features,
     pairing_features_for_type,
     pitcher_arsenal_means,
@@ -46,13 +49,64 @@ SITUATIONAL_EXTRA_COLS = [
     "leverage_proxy",
     "leverage_high",
     "leverage_medium",
+    "leverage_low",
     "fg_batter_woba_platoon",
     "fg_batter_xwoba_platoon",
 ]
 
 SITUATIONAL_CONTEXT_COLS = [
     c for c in CONTEXT_FEATURE_COLS if c not in LOCATION_FEATURE_COLS
-] + SITUATIONAL_EXTRA_COLS
+] + SITUATIONAL_EXTRA_COLS + list(BATTER_PT_PRIOR_COLS)
+
+LEVERAGE_INTERACTION_PREFIXES = (
+    "lev_proxy_x_",
+    "lev_hi_x_",
+    "lev_med_x_",
+    "lev_lo_x_",
+)
+
+
+def leverage_pitch_interaction_cols(pitch_types: Iterable[str]) -> list[str]:
+    """Per-pitch leverage interactions so the model can learn pitch-specific LI effects."""
+    cols: list[str] = []
+    for pt in pitch_types:
+        cols.extend(f"{prefix}{pt}" for prefix in LEVERAGE_INTERACTION_PREFIXES)
+    return cols
+
+
+def _add_leverage_pitch_interactions(
+    X: pd.DataFrame, pitch_types: Iterable[str]
+) -> pd.DataFrame:
+    out = X.copy()
+    lev_map = {
+        "lev_proxy_x_": "leverage_proxy",
+        "lev_hi_x_": "leverage_high",
+        "lev_med_x_": "leverage_medium",
+        "lev_lo_x_": "leverage_low",
+    }
+    for pt in pitch_types:
+        oh_col = f"{PITCH_ONEHOT_PREFIX}{pt}"
+        oh = out[oh_col] if oh_col in out.columns else 0.0
+        for prefix, lev_col in lev_map.items():
+            lev = out[lev_col] if lev_col in out.columns else 0.0
+            out[f"{prefix}{pt}"] = lev * oh
+    return out
+
+
+def _finalize_situational_features(
+    feat_df: pd.DataFrame,
+    ctx_row: pd.Series,
+    model: SituationalModel,
+) -> pd.DataFrame:
+    """Attach situational extras, leverage×pitch interactions, and missing one-hots."""
+    out = feat_df.copy()
+    for col in SITUATIONAL_EXTRA_COLS:
+        out[col] = float(ctx_row[col])
+    out = _add_leverage_pitch_interactions(out, model.pitch_types)
+    for pt_col in model.feature_names:
+        if pt_col.startswith(PITCH_ONEHOT_PREFIX) and pt_col not in out.columns:
+            out[pt_col] = 0
+    return out
 
 DEFAULT_SITUATIONAL_MODEL_PATH = Path("models/situational_model.joblib")
 
@@ -298,6 +352,7 @@ def generate_demo_grid(
                         stand=default_stand,
                         p_throws=default_pt,
                         pitcher_df=p["df"],
+                        batter_df=bdf,
                         arsenal=p["arsenal"],
                         arsenal_means=p["arsenal_means"],
                         primary=p["primary"],
@@ -337,6 +392,7 @@ def generate_demo_grid(
                             stand=st,
                             p_throws=pt,
                             pitcher_df=p["df"],
+                            batter_df=bdf,
                             arsenal=p["arsenal"],
                             arsenal_means=p["arsenal_means"],
                             primary=p["primary"],
@@ -377,6 +433,7 @@ def _score_demo_situation(
     stand: str,
     p_throws: str,
     pitcher_df: pd.DataFrame,
+    batter_df: pd.DataFrame,
     arsenal: list[str],
     arsenal_means: pd.DataFrame,
     primary: str,
@@ -406,17 +463,19 @@ def _score_demo_situation(
         fg_batter_xwoba_platoon=fg_xwoba,
         pitcher_df=pitcher_df,
     )
-    feat_df = context_row_features(
+    batter_pt_priors = batter_pitch_type_prior_table(batter_df)
+    feat_df = _finalize_situational_features(
+        context_row_features(
+            ctx_row,
+            arsenal,
+            arsenal_means=arsenal_means,
+            primary_pitch=primary,
+            batter_pt_priors=batter_pt_priors,
+            extra_context_cols=BATTER_PT_PRIOR_COLS,
+        ),
         ctx_row,
-        arsenal,
-        arsenal_means=arsenal_means,
-        primary_pitch=primary,
+        model,
     )
-    for col in SITUATIONAL_EXTRA_COLS:
-        feat_df[col] = float(ctx_row[col])
-    for pt_col in model.feature_names:
-        if pt_col.startswith(PITCH_ONEHOT_PREFIX) and pt_col not in feat_df.columns:
-            feat_df[pt_col] = 0
 
     pred_rv = model.predict_rv(feat_df)
     pred_xw = model.predict_xwoba(feat_df)
@@ -601,6 +660,7 @@ def prepare_situational_pitches(
 
     out["fg_batter_woba_platoon"] = 0.320
     out["fg_batter_xwoba_platoon"] = 0.320
+    out = add_batter_pitch_type_priors(out)
     if season is not None:
         root = Path(data_dir)
         reg_path = chadwick_register_path(root)
@@ -646,6 +706,7 @@ def build_situational_matrix(
     X = X.fillna(X.median(numeric_only=True))
     for pt in pts:
         X[f"{PITCH_ONEHOT_PREFIX}{pt}"] = (frame["pitch_type"] == pt).astype(int)
+    X = _add_leverage_pitch_interactions(X, pts)
     y_rv = frame["target_rv"].astype(float)
     y_xwoba = frame["target_xwoba"].astype(float)
     return X, y_rv, y_xwoba
@@ -972,17 +1033,21 @@ def recommend_pitch(
 
     arsenal_means = pitcher_arsenal_means(pitcher_df)
     primary = primary_pitch_type(pitcher_df)
-    feat_df = context_row_features(
-        ctx_row,
-        arsenal,
-        arsenal_means=arsenal_means,
-        primary_pitch=primary,
+    batter_pt_priors = batter_pitch_type_prior_table(
+        prepared.loc[prepared["batter"] == batter_id]
     )
-    for col in SITUATIONAL_EXTRA_COLS:
-        feat_df[col] = float(ctx_row[col])
-    for pt_col in model.feature_names:
-        if pt_col.startswith(PITCH_ONEHOT_PREFIX) and pt_col not in feat_df.columns:
-            feat_df[pt_col] = 0
+    feat_df = _finalize_situational_features(
+        context_row_features(
+            ctx_row,
+            arsenal,
+            arsenal_means=arsenal_means,
+            primary_pitch=primary,
+            batter_pt_priors=batter_pt_priors,
+            extra_context_cols=BATTER_PT_PRIOR_COLS,
+        ),
+        ctx_row,
+        model,
+    )
 
     pred_rv = model.predict_rv(feat_df)
     pred_xw = model.predict_xwoba(feat_df)
