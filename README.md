@@ -57,6 +57,30 @@ uv run pitch-dataset pull-all --season 2026
 
 Savant vs API: Savant is pitch-level tracking (Statcast); the MLB Stats API adds game context (schedule, lineups, bullpen availability via rosters), transactions, and roster status — not pitch physics.
 
+### Local pitch files (last updated 2026-08-28)
+
+| File | League | Season | Date range | Pitches | Size |
+| --- | --- | --- | --- | ---: | ---: |
+| `pitches_mlb_2026.parquet` | MLB | 2026 | 2026-03-25 → 2026-08-27 | 593,334 | ~83 MB |
+| `pitches_mlb_2025.parquet` | MLB | 2025 | 2025-03-18 → 2025-11-01 | 726,773 | ~107 MB |
+| `pitches_minors_2026.parquet` | MiLB (AAA, A) | 2026 | 2026-03-27 → 2026-08-27 | 738,388 | ~85 MB |
+
+**Pitch Statcast total:** 2,058,495 pitches. MiLB is strongest at AAA/A tracked parks; re-pull failed windows with `--start` / `--end` if Savant times out.
+
+```bash
+# Refresh current MLB season
+uv run pitch-dataset pull --league mlb --season 2026
+
+# Full prior MLB season
+uv run pitch-dataset pull --league mlb --season 2025
+
+# MiLB season-to-date (AAA + A default)
+uv run pitch-dataset pull --league minors --season 2026
+
+# Retry a failed MiLB window
+uv run pitch-dataset pull --league minors --season 2026 --start 2026-05-08 --end 2026-05-11
+```
+
 ### Joining Savant ↔ FanGraphs
 
 Savant `pitcher` / `batter` columns are **MLBAM** ids. FanGraphs leaderboards expose `IDfg` and often `xMLBAMID`. Chadwick `key_mlbam` ↔ `key_fangraphs` is the canonical crosswalk when `xMLBAMID` is missing.
@@ -154,41 +178,6 @@ Outputs:
 | --- | --- |
 | `data/pitches_mlb_{season}.parquet` | MLB Statcast pitches |
 | `data/pitches_minors_{season}.parquet` | MiLB Statcast pitches (AAA + A by default) |
-
-## Data inventory
-
-Parquet files live under `data/` and are **gitignored**. Refresh with `uv run pitch-dataset pull` (see commands below). Last updated **2026-08-28**.
-
-### Pitch-level Statcast (Savant)
-
-| File | League | Season | Date range | Pitches | Size |
-| --- | --- | --- | --- | ---: | ---: |
-| `pitches_mlb_2026.parquet` | MLB | 2026 | 2026-03-25 → 2026-08-27 | 593,334 | ~79 MB |
-| `pitches_mlb_2025.parquet` | MLB | 2025 | 2025-03-18 → 2025-11-01 | 726,773 | ~102 MB |
-| `pitches_minors_2026.parquet` | MiLB (AAA, A) | 2026 | 2026-03-27 → 2026-08-27 | 738,388 | ~81 MB |
-
-**Totals (pitch Statcast):** ~2.06M pitches across MLB 2025–2026 and MiLB 2026 season-to-date.
-
-MiLB coverage is sparse outside tracked AAA/A parks; AA, A+, and Rookie levels are supported by the pull CLI but returned no tracked pitches in 2026. Expect gaps on days Savant times out (re-pull specific windows with `--start` / `--end`).
-
-### Refresh commands
-
-```bash
-# Current MLB season through today
-uv run pitch-dataset pull --league mlb --season 2026
-
-# Incremental MLB refresh (merge manually if you only want new dates)
-uv run pitch-dataset pull --league mlb --season 2026 --start 2026-08-28 --end 2026-08-28
-
-# Full prior MLB season (historical depth)
-uv run pitch-dataset pull --league mlb --season 2025
-
-# MiLB season-to-date (all supported levels; AAA + A have tracked data)
-uv run pitch-dataset pull --league minors --season 2026 --levels AAA,AA,A+,A,Rookie
-
-# Retry a failed MiLB window
-uv run pitch-dataset pull --league minors --season 2026 --start 2026-05-08 --end 2026-05-11
-```
 
 ## Pitch arsenal optimization
 
