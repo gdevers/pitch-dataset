@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Situational Pitch Selection</title>
+  <style>
+    :root {
+      --bg: #f7f7f5; --fg: #1a1a1a; --muted: #5c5c5c; --line: #d8d8d4;
+      --accent: #1f4b99; --good: #1f6b3a; --card: #fff; --pick: #1f6b3a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.45 "IBM Plex Sans", "Segoe UI", sans-serif;
+      color: var(--fg); background: var(--bg); }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 20px 56px; }
+    h1 { font: 600 26px/1.2 sans-serif; margin: 0 0 6px; letter-spacing: -0.02em; }
+    h2 { font: 600 17px/1.3 sans-serif; margin: 28px 0 10px; }
+    p, .meta { color: var(--muted); margin: 0 0 10px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+    select, button {
+      font: inherit; padding: 8px 12px; border: 1px solid var(--line);
+      border-radius: 4px; background: var(--card);
+    }
+    button { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+    .hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
+    .stat .v { font: 600 19px/1.2 sans-serif; }
+    .stat .l { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; }
+    .bar-row { display: grid; grid-template-columns: 44px 1fr 72px; gap: 8px; align-items: center; margin: 6px 0; }
+    .bar-track { height: 22px; background: #eee; border-radius: 3px; position: relative; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; opacity: 0.85; }
+    .bar-fill.pick { background: var(--pick); }
+    .bar-fill.def { background: #8a8a84; }
+    .tag { font-size: 11px; color: var(--muted); }
+    .pick-label { color: var(--pick); font-weight: 600; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Situational Pitch Selection</h1>
+  <p class="meta">_Situational model scored on MLB 2026 pitches (2026-03-25 → 2026-08-27, n=593,334). Micro pitch-choice (not season usage optimization)._</p>
+  <p>Against this batter, in this count, right now — which pitch minimizes damage?</p>
+  <div class="controls">
+    <select id="matchup"></select>
+    <button type="button" id="show">Show</button>
+  </div>
+  <div id="panel"></div>
+</main>
+<script>
+const RECS = [{"pitcher_id": 656302, "pitcher_name": "Cease, Dylan", "batter_id": 646240, "batter_name": "Rafael Devers", "count": "1-2", "batter_side": "LHH", "p_throws": "R", "leverage": "high", "leverage_proxy": 0.65, "outs": 2, "runners_on": 1, "score_diff": 0, "prev_pitch": "FF", "default_pitch": "SL", "recommended_pitch": "FF", "expected_improvement_xwoba": 0.027973330525237206, "scores": [{"pitch_type": "FF", "pred_xwoba": 0.2532530185210842, "pred_rv": -0.0002403300609932395, "is_recommended": true, "is_default": false}, {"pitch_type": "SL", "pred_xwoba": 0.28122634904632143, "pred_rv": 0.007262548323699631, "is_recommended": false, "is_default": true}, {"pitch_type": "SI", "pred_xwoba": 0.2848742673050698, "pred_rv": 0.005653230633832507, "is_recommended": false, "is_default": false}, {"pitch_type": "CH", "pred_xwoba": 0.2883817411367966, "pred_rv": 0.006850510733710859, "is_recommended": false, "is_default": false}, {"pitch_type": "ST", "pred_xwoba": 0.2940626219658028, "pred_rv": 0.010616369855987877, "is_recommended": false, "is_default": false}, {"pitch_type": "KC", "pred_xwoba": 0.29562011123825166, "pred_rv": 0.009174320727243458, "is_recommended": false, "is_default": false}]}, {"pitcher_id": 656302, "pitcher_name": "Cease, Dylan", "batter_id": 677800, "batter_name": "Wilyer Abreu", "count": "0-2", "batter_side": "LHH", "p_throws": "R", "leverage": "medium", "leverage_proxy": 0.4, "outs": 1, "runners_on": 0, "score_diff": 0, "prev_pitch": null, "default_pitch": "FF", "recommended_pitch": "FF", "expected_improvement_xwoba": 0.0, "scores": [{"pitch_type": "FF", "pred_xwoba": 0.2630996311001285, "pred_rv": 0.0008102075721225371, "is_recommended": true, "is_default": true}, {"pitch_type": "SL", "pred_xwoba": 0.2830990233659522, "pred_rv": 0.003757160174591679, "is_recommended": false, "is_default": false}, {"pitch_type": "CH", "pred_xwoba": 0.28716553752938545, "pred_rv": 0.0029748510630316165, "is_recommended": false, "is_default": false}, {"pitch_type": "ST", "pred_xwoba": 0.29733906435475616, "pred_rv": 0.006737845434774071, "is_recommended": false, "is_default": false}, {"pitch_type": "SI", "pred_xwoba": 0.300023388219064, "pred_rv": 0.006747936582224996, "is_recommended": false, "is_default": false}, {"pitch_type": "KC", "pred_xwoba": 0.30218791753946195, "pred_rv": 0.0060983572586678645, "is_recommended": false, "is_default": false}]}, {"pitcher_id": 669373, "pitcher_name": "Skubal, Tarik", "batter_id": 592450, "batter_name": "Aaron Judge", "count": "2-2", "batter_side": "RHH", "p_throws": "L", "leverage": "high", "leverage_proxy": 0.65, "outs": 2, "runners_on": 2, "score_diff": -1, "prev_pitch": null, "default_pitch": "CH", "recommended_pitch": "FF", "expected_improvement_xwoba": 0.03739993120304519, "scores": [{"pitch_type": "FF", "pred_xwoba": 0.2882934100346928, "pred_rv": 0.013664662824566961, "is_recommended": true, "is_default": false}, {"pitch_type": "SI", "pred_xwoba": 0.2973116631091337, "pred_rv": 0.019474179174975487, "is_recommended": false, "is_default": false}, {"pitch_type": "CU", "pred_xwoba": 0.29807661243046196, "pred_rv": 0.014193777281191434, "is_recommended": false, "is_default": false}, {"pitch_type": "SL", "pred_xwoba": 0.31879572479026996, "pred_rv": 0.015801134736657025, "is_recommended": false, "is_default": false}, {"pitch_type": "CH", "pred_xwoba": 0.32569334123773797, "pred_rv": 0.029876465894417472, "is_recommended": false, "is_default": true}]}, {"pitcher_id": 694973, "pitcher_name": "Skenes, Paul", "batter_id": 660271, "batter_name": "Shohei Ohtani", "count": "1-1", "batter_side": "LHH", "p_throws": "R", "leverage": "medium", "leverage_proxy": 0.4, "outs": 0, "runners_on": 0, "score_diff": 0, "prev_pitch": null, "default_pitch": "FF", "recommended_pitch": "SL", "expected_improvement_xwoba": 7.277986031128947e-05, "scores": [{"pitch_type": "SL", "pred_xwoba": 0.2919553774678779, "pred_rv": 0.02421045561730825, "is_recommended": true, "is_default": false}, {"pitch_type": "FF", "pred_xwoba": 0.2920281573281892, "pred_rv": 0.023475218408705766, "is_recommended": false, "is_default": true}, {"pitch_type": "ST", "pred_xwoba": 0.294279832576541, "pred_rv": 0.02093218858245227, "is_recommended": false, "is_default": false}, {"pitch_type": "SI", "pred_xwoba": 0.297009971932568, "pred_rv": 0.02420687938921878, "is_recommended": false, "is_default": false}, {"pitch_type": "FS", "pred_xwoba": 0.3014804840125233, "pred_rv": 0.026970724162768845, "is_recommended": false, "is_default": false}, {"pitch_type": "CH", "pred_xwoba": 0.30768756192263125, "pred_rv": 0.02712577782958912, "is_recommended": false, "is_default": false}]}, {"pitcher_id": 592332, "pitcher_name": "Gausman, Kevin", "batter_id": 665489, "batter_name": "Vladimir Guerrero", "count": "3-2", "batter_side": "RHH", "p_throws": "R", "leverage": "high", "leverage_proxy": 0.65, "outs": 2, "runners_on": 1, "score_diff": 1, "prev_pitch": null, "default_pitch": "FF", "recommended_pitch": "FF", "expected_improvement_xwoba": 0.0, "scores": [{"pitch_type": "FF", "pred_xwoba": 0.3108384884536793, "pred_rv": -0.004711339321577264, "is_recommended": true, "is_default": true}, {"pitch_type": "FS", "pred_xwoba": 0.319516458281697, "pred_rv": -0.006722592531006101, "is_recommended": false, "is_default": false}, {"pitch_type": "SL", "pred_xwoba": 0.325718148590333, "pred_rv": -0.008502701518386996, "is_recommended": false, "is_default": false}, {"pitch_type": "CH", "pred_xwoba": 0.32807712698942915, "pred_rv": 0.0002693898355460879, "is_recommended": false, "is_default": false}]}];
+const MATCHUPS = [{"pitcher": "Cease", "batter": "Devers", "count": "1-2", "leverage": "high", "stand": "L", "p_throws": "R", "outs": 2, "runners_on": 1, "score_diff": 0, "prev_pitch": "FF", "label": "Cease vs Devers"}, {"pitcher": "Cease", "batter": "Abreu", "count": "0-2", "leverage": "medium", "stand": "L", "p_throws": "R", "outs": 1, "label": "Cease vs Wilyer Abreu"}, {"pitcher": "Skubal", "batter": "Judge", "count": "2-2", "leverage": "high", "stand": "R", "p_throws": "L", "outs": 2, "runners_on": 2, "score_diff": -1, "label": "Skubal vs Aaron Judge"}, {"pitcher": "Skenes", "batter": "Ohtani", "count": "1-1", "leverage": "medium", "stand": "L", "p_throws": "R", "outs": 0, "label": "Skenes vs Ohtani"}, {"pitcher": "Gausman", "batter": "Guerrero", "count": "3-2", "leverage": "high", "stand": "R", "p_throws": "R", "outs": 2, "runners_on": 1, "score_diff": 1, "label": "Gausman vs Vladimir Guerrero Jr."}];
+
+const sel = document.getElementById('matchup');
+MATCHUPS.forEach((m, i) => {
+  const o = document.createElement('option');
+  o.value = i;
+  o.textContent = m.label || `${m.pitcher} vs ${m.batter} | ${m.count}`;
+  sel.appendChild(o);
+});
+
+function shortName(n) {
+  if (!n) return '';
+  if (n.includes(',')) return n.split(',')[0].trim();
+  const p = n.trim().split(/\s+/);
+  return p[p.length - 1];
+}
+
+function render(i) {
+  const rec = RECS[i];
+  if (!rec) return;
+  const maxX = Math.max(...rec.scores.map(s => s.pred_xwoba));
+  const minX = Math.min(...rec.scores.map(s => s.pred_xwoba));
+  const span = Math.max(0.001, maxX - minX);
+  const imp = (-rec.expected_improvement_xwoba).toFixed(3);
+  const impSign = rec.expected_improvement_xwoba >= 0 ? '' : '+';
+  let bars = rec.scores.map(s => {
+    const w = ((s.pred_xwoba - minX) / span) * 100;
+    const cls = s.is_recommended ? 'pick' : (s.is_default ? 'def' : '');
+    const tag = s.is_recommended ? '<span class="pick-label">pick</span>' :
+      (s.is_default ? '<span class="tag">default</span>' : '');
+    return `<div class="bar-row">
+      <div><strong>${s.pitch_type}</strong></div>
+      <div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.max(8,w)}%"></div></div>
+      <div>${s.pred_xwoba.toFixed(3)} ${tag}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('panel').innerHTML = `
+    <div class="hero">
+      <div class="stat"><div class="v">${shortName(rec.pitcher_name)}</div><div class="l">Pitcher</div></div>
+      <div class="stat"><div class="v">${shortName(rec.batter_name)}</div><div class="l">Batter · ${rec.batter_side}</div></div>
+      <div class="stat"><div class="v">${rec.count}</div><div class="l">${rec.leverage} leverage</div></div>
+      <div class="stat"><div class="v">${rec.recommended_pitch}</div><div class="l">vs default ${rec.default_pitch}</div></div>
+    </div>
+    <div class="card">
+      <h2>Recommended: ${rec.recommended_pitch}${rec.recommended_pitch !== rec.default_pitch ? ` (not ${rec.default_pitch})` : ''}</h2>
+      <p>Expected improvement vs default: <strong>${impSign}${imp} xwOBA</strong></p>
+      ${bars}
+    </div>`;
+}
+
+document.getElementById('show').onclick = () => render(+sel.value);
+render(0);
+</script>
+</body>
+</html>

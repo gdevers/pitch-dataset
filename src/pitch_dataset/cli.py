@@ -38,7 +38,9 @@ def main(argv: list[str] | None = None) -> int:
     _add_pull_all_parser(sub)
     _add_sample_parser(sub)
     _add_train_parser(sub)
+    _add_train_select_parser(sub)
     _add_optimize_parser(sub)
+    _add_select_parser(sub)
     _add_traded_parser(sub)
 
     args = parser.parse_args(argv)
@@ -61,8 +63,12 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_sample(args)
     if args.command == "train-model":
         return _cmd_train(args)
+    if args.command == "train-select":
+        return _cmd_train_select(args)
     if args.command == "optimize":
         return _cmd_optimize(args)
+    if args.command == "select":
+        return _cmd_select(args)
     if args.command == "traded":
         return _cmd_traded(args)
 
@@ -222,6 +228,107 @@ def _add_train_parser(sub: argparse._SubParsersAction) -> None:
         type=int,
         default=200,
         help="Minimum league-wide pitch-type count to include as a one-hot",
+    )
+
+
+def _add_train_select_parser(sub: argparse._SubParsersAction) -> None:
+    train = sub.add_parser(
+        "train-select",
+        help="Train the situational pitch-selection outcome model",
+    )
+    train.add_argument("--season", type=int, default=DEFAULT_SEASON)
+    train.add_argument(
+        "--seasons",
+        type=str,
+        default=None,
+        help="Comma-separated seasons to combine (e.g. 2025,2026)",
+    )
+    train.add_argument(
+        "--league",
+        choices=("mlb", "minors", "all"),
+        default="mlb",
+        help="Training league (default: mlb)",
+    )
+    train.add_argument("--data-dir", type=str, default="data")
+    train.add_argument(
+        "--model-path",
+        type=str,
+        default="models/situational_model.joblib",
+        help="Where to write the trained situational model",
+    )
+    train.add_argument(
+        "--min-pitch-n",
+        type=int,
+        default=200,
+        help="Minimum league-wide pitch-type count to include as a one-hot",
+    )
+
+
+def _add_select_parser(sub: argparse._SubParsersAction) -> None:
+    sel = sub.add_parser(
+        "select",
+        help="Recommend a pitch for a specific batter/count/situation",
+    )
+    sel.add_argument("--pitcher", type=str, default=None, help='Pitcher name or MLBAM id')
+    sel.add_argument("--batter", type=str, default=None, help='Batter name or MLBAM id')
+    sel.add_argument("--count", type=str, default=None, help='Count e.g. "1-2"')
+    sel.add_argument(
+        "--leverage",
+        choices=("low", "medium", "high"),
+        default=None,
+        help="Leverage bucket override",
+    )
+    sel.add_argument("--outs", type=int, default=None)
+    sel.add_argument("--stand", type=str, choices=("L", "R"), default=None)
+    sel.add_argument("--p-throws", type=str, choices=("L", "R"), default=None)
+    sel.add_argument("--runners-on", type=int, default=None)
+    sel.add_argument("--score-diff", type=int, default=None)
+    sel.add_argument("--prev-pitch", type=str, default=None)
+    sel.add_argument("--tto", type=int, default=1)
+    sel.add_argument("--season", type=int, default=DEFAULT_SEASON)
+    sel.add_argument(
+        "--seasons",
+        type=str,
+        default=None,
+        help="Comma-separated seasons for training data context",
+    )
+    sel.add_argument(
+        "--league",
+        choices=("mlb", "minors", "all"),
+        default="mlb",
+    )
+    sel.add_argument("--data-dir", type=str, default="data")
+    sel.add_argument(
+        "--model-path",
+        type=str,
+        default="models/situational_model.joblib",
+    )
+    sel.add_argument(
+        "--report",
+        type=str,
+        default=None,
+        help="Optional markdown report path",
+    )
+    sel.add_argument(
+        "--html",
+        type=str,
+        default=None,
+        help="Optional HTML visual path (single matchup)",
+    )
+    sel.add_argument(
+        "--train",
+        action="store_true",
+        help="Train situational model before scoring",
+    )
+    sel.add_argument(
+        "--train-if-missing",
+        action="store_true",
+        help="Train situational model if model-path does not exist",
+    )
+    sel.add_argument(
+        "--demo",
+        action="store_true",
+        help="Run built-in demo matchups and write reports/situational_selection.html",
     )
 
 
@@ -449,6 +556,164 @@ def _load_league_frames(args: argparse.Namespace):
             )
         frames.append(read_pitches(path))
     return pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
+
+
+def _load_season_frames(
+    data_dir: str,
+    *,
+    seasons: list[int],
+    league: str,
+):
+    import pandas as pd
+
+    leagues = ["mlb", "minors"] if league == "all" else [league]
+    frames = []
+    for season in seasons:
+        for lg in leagues:
+            path = pitch_path(data_dir, season=season, league=lg)
+            if not path.exists():
+                raise FileNotFoundError(
+                    f"Missing {path}. Pull data first for season {season}."
+                )
+            frames.append(read_pitches(path))
+    return pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
+
+
+def _parse_seasons_arg(args: argparse.Namespace) -> list[int]:
+    if getattr(args, "seasons", None):
+        return [int(s.strip()) for s in args.seasons.split(",") if s.strip()]
+    return [args.season]
+
+
+def _cmd_train_select(args: argparse.Namespace) -> int:
+    from pitch_dataset.situational import train_situational_model
+
+    seasons = _parse_seasons_arg(args)
+    pitches = _load_season_frames(
+        args.data_dir, seasons=seasons, league=args.league
+    )
+    model, metrics = train_situational_model(
+        pitches,
+        model_path=args.model_path,
+        data_dir=args.data_dir,
+        season=seasons[-1],
+        min_pitch_n=args.min_pitch_n,
+    )
+    print(json.dumps(metrics, indent=2))
+    print(f"Wrote situational model -> {args.model_path}")
+    print(f"Feature count: {len(model.feature_names)}")
+    return 0
+
+
+def _cmd_select(args: argparse.Namespace) -> int:
+    from pitch_dataset.situational import (
+        DEMO_MATCHUPS,
+        format_situational_text,
+        load_situational_model,
+        recommend_pitch,
+        train_situational_model,
+        write_situational_html,
+        write_situational_report,
+    )
+
+    seasons = _parse_seasons_arg(args)
+    pitches = _load_season_frames(
+        args.data_dir, seasons=seasons, league=args.league
+    )
+    model_path = Path(args.model_path)
+    if args.train or (args.train_if_missing and not model_path.exists()):
+        logging.info("Training situational model at %s", model_path)
+        model, _ = train_situational_model(
+            pitches,
+            model_path=model_path,
+            data_dir=args.data_dir,
+            season=seasons[-1],
+        )
+    elif not model_path.exists():
+        raise FileNotFoundError(
+            f"Missing model at {model_path}. Run "
+            "`uv run pitch-dataset train-select` or pass --train / --train-if-missing."
+        )
+    else:
+        model = load_situational_model(model_path)
+
+    date_min = str(pitches["game_date"].min())[:10] if "game_date" in pitches.columns else "?"
+    date_max = str(pitches["game_date"].max())[:10] if "game_date" in pitches.columns else "?"
+    season_label = ",".join(str(s) for s in seasons)
+    data_note = (
+        f"_Situational model scored on {args.league.upper()} {season_label} pitches "
+        f"({date_min} → {date_max}, n={len(pitches):,}). "
+        "Micro pitch-choice (not season usage optimization)._"
+    )
+
+    rec_kwargs = {
+        "leverage": args.leverage,
+        "outs": args.outs,
+        "stand": args.stand,
+        "p_throws": args.p_throws,
+        "runners_on": args.runners_on,
+        "score_diff": args.score_diff,
+        "prev_pitch": args.prev_pitch,
+        "tto": args.tto,
+        "data_dir": args.data_dir,
+        "season": seasons[-1],
+    }
+
+    if args.demo:
+        recs = []
+        for spec in DEMO_MATCHUPS:
+            try:
+                rec = recommend_pitch(
+                    pitches,
+                    model,
+                    pitcher=spec["pitcher"],
+                    batter=spec["batter"],
+                    count=spec["count"],
+                    leverage=spec.get("leverage"),
+                    outs=spec.get("outs"),
+                    stand=spec.get("stand"),
+                    p_throws=spec.get("p_throws"),
+                    runners_on=spec.get("runners_on"),
+                    score_diff=spec.get("score_diff"),
+                    prev_pitch=spec.get("prev_pitch"),
+                    tto=spec.get("tto", args.tto),
+                    data_dir=args.data_dir,
+                    season=seasons[-1],
+                )
+                recs.append(rec)
+                print(format_situational_text(rec))
+                print()
+            except ValueError as exc:
+                logging.warning("Skipping demo %s: %s", spec.get("label"), exc)
+        if not recs:
+            raise SystemExit("No demo matchups could be scored.")
+        html_path = args.html or "reports/situational_selection.html"
+        write_situational_html(recs, html_path, data_note=data_note)
+        report_path = args.report or "reports/situational_selection.md"
+        write_situational_report(recs, report_path, data_note=data_note)
+        print(f"Wrote report -> {report_path}", file=sys.stderr)
+        print(f"Wrote HTML -> {html_path}", file=sys.stderr)
+        return 0
+
+    if not args.pitcher or not args.batter or not args.count:
+        raise SystemExit("--pitcher, --batter, and --count are required unless --demo is set.")
+
+    rec = recommend_pitch(
+        pitches,
+        model,
+        pitcher=args.pitcher,
+        batter=args.batter,
+        count=args.count,
+        **rec_kwargs,
+    )
+    print(format_situational_text(rec))
+    if args.report:
+        out = write_situational_report(rec, args.report, data_note=data_note)
+        print(f"Wrote report -> {out}", file=sys.stderr)
+    if args.html:
+        out = write_situational_html([rec], args.html, data_note=data_note)
+        print(f"Wrote HTML -> {out}", file=sys.stderr)
+    return 0
 
 
 def _cmd_train(args: argparse.Namespace) -> int:

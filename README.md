@@ -11,6 +11,7 @@ Open the static arsenal optimization summary (Cease headline + top-3 ΔxwOBA):
 - **In a clone:** open [`reports/arsenal_optimization.html`](reports/arsenal_optimization.html) in your browser (double-click or `open reports/arsenal_optimization.html` on macOS).
 - **Traded deadline:** [`reports/traded_pitchers.html`](reports/traded_pitchers.html) — Skubal, Gausman, Soriano, Mize, Peralta pre/post splits.
 - **Shape & pairing lab:** [`reports/traded_pitchers_shape.html`](reports/traded_pitchers_shape.html) — arm angle, spin, extension, effective speed, API break, extended pairing/tunnel (pitcher switcher). Canvas: [`traded-pitchers-shape.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers-shape.canvas.tsx).
+- **Situational selection:** [`reports/situational_selection.html`](reports/situational_selection.html) — micro pitch-choice game cards (matchup picker). Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx).
 - **On GitHub:** [blob view](https://github.com/gdevers/pitch-dataset/blob/main/reports/arsenal_optimization.html) shows source; GitHub’s HTML preview does **not** run the page JS well. Prefer local open, or GitHub Pages if enabled for this private repo (Pro/Team required for private Pages).
 
 Also listed under [`reports/`](reports/README.md).
@@ -21,7 +22,8 @@ Also listed under [`reports/`](reports/README.md).
 | --- | --- |
 | `notebooks/arsenal_optimization.ipynb` | **Start here** — hiring walkthrough: data → features → outcome model → optimize → example recommendations |
 | `src/pitch_dataset/arsenal.py` | All arsenal logic in one module (features, model, optimize, report) |
-| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `optimize` / `traded` |
+| `src/pitch_dataset/situational.py` | Micro pitch-choice engine (context + pitch type → xwOBA; `recommend_pitch`) |
+| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `optimize` / `select` / `traded` |
 | `src/pitch_dataset/mlb_api.py` | MLB Stats API schedules, rosters, transactions, lineups |
 | `src/pitch_dataset/fangraphs.py` | FanGraphs leaderboards and platoon splits |
 | `src/pitch_dataset/chadwick.py` | Chadwick player ID register |
@@ -29,7 +31,8 @@ Also listed under [`reports/`](reports/README.md).
 | `src/pitch_dataset/traded_analysis.py` | Pre/post trade-deadline usage, shape, pairing/tunnel reports |
 | `reports/arsenal_optimization.html` | **Interactive visual** — open in a browser |
 | `reports/` | Example markdown recommendations (e.g. Cease) |
-| `models/outcome_model.joblib` | Trained demo artifact |
+| `models/outcome_model.joblib` | Trained demo artifact (arsenal optimization) |
+| `models/situational_model.joblib` | Trained situational pitch-selection model |
 
 Dataset plumbing (`pipeline`, `savant`, `storage`, `seasons`) stays separate from the arsenal story.
 
@@ -241,6 +244,66 @@ uv run pitch-dataset optimize --top 3 --train-if-missing --report reports/exampl
 - Pitch-level xwOBA for takes/whiffs is a heuristic mapping; BIP uses Savant `estimated_woba_using_speedangle` when present.
 - No explicit game-planning, catcher, or health constraints.
 - Pairing/tunnel metrics are descriptive features (extended with spin, arm angle, extension, API break), not a full tunneling model.
+
+## Situational pitch selection
+
+### What it does (vs `optimize`)
+
+| | **`optimize`** | **`select`** |
+| --- | --- | --- |
+| Question | Is this pitcher using his pitches optimally over the season? | Against *this* batter, in *this* count, right now — which pitch minimizes damage? |
+| Output | Reallocate pitch-type **usage %** (e.g. SL 24% → 39%) | Pick **one pitch** from the arsenal for this moment |
+| Location | Holds zone/plate fixed | Excludes zone/plate (unknown pre-throw) |
+| Extra context | Season segments (platoon, count buckets) | Leverage proxy, FanGraphs batter platoon splits, explicit game state |
+
+Example:
+
+```text
+Cease vs Devers | LHH | 1-2 | high leverage
+Recommended: FF (not SL)
+  FF: pred xwOBA 0.253  ← pick
+  SL: pred xwOBA 0.281
+  ...
+Expected improvement vs default: −0.028 xwOBA
+```
+
+### Train
+
+```bash
+uv run pitch-dataset train-select --league mlb --season 2026
+# writes models/situational_model.joblib (~591k MLB 2026 pitches)
+# optional multi-season: --seasons 2025,2026
+```
+
+### Select
+
+```bash
+uv run pitch-dataset select --pitcher "Cease" --batter "Devers" --count 1-2 \
+  --leverage high --stand L --p-throws R --outs 2 --runners-on 1 --prev-pitch FF \
+  --report reports/example_select_cease_devers.md
+
+# Demo matchups + HTML game card
+uv run pitch-dataset select --demo
+# -> reports/situational_selection.md, reports/situational_selection.html
+```
+
+### Method
+
+| Piece | Approach |
+| --- | --- |
+| Outcome model | Dual `HistGradientBoostingRegressor` (same architecture as arsenal); **no zone/location** features |
+| Context | Count, platoon, TTO, runners, score, outs, leverage proxy, prev pitch, batter prior xwOBA, FanGraphs platoon wOBA/xwOBA, pitch shape + pairing |
+| Scoring | One feature row per arsenal pitch; rank by predicted xwOBA; compare best vs count/platoon **default** (pitcher's modal pitch in situation) |
+| Training sample | MLB 2026: **591,030** pitches (2026-03-25 → 2026-08-27); combine with `--seasons 2025,2026` for ~1.3M |
+
+### Limitations
+
+- Pitch-level xwOBA is a heuristic mapping (same as arsenal model); R² is low — treat as directional.
+- Leverage is a simple proxy (inning + score + runners), not full WPA/LI.
+- Default pitch = modal type in count/platoon, not full game-plan or catcher preference.
+- Small matchup samples (e.g. Cease vs Devers n=15) rely on model + batter priors, not head-to-head history alone.
+
+Interactive visual: [`reports/situational_selection.html`](reports/situational_selection.html). Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx). Copy to Downloads: `cp reports/situational_selection.html ~/Downloads/situational-selection-visual.html`.
 
 ### Traded deadline analysis
 
