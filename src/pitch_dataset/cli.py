@@ -660,6 +660,8 @@ def _cmd_select(args: argparse.Namespace) -> int:
     }
 
     if args.demo:
+        from pitch_dataset.situational import generate_demo_grid
+
         recs = []
         for spec in DEMO_MATCHUPS:
             try:
@@ -687,12 +689,28 @@ def _cmd_select(args: argparse.Namespace) -> int:
                 logging.warning("Skipping demo %s: %s", spec.get("label"), exc)
         if not recs:
             raise SystemExit("No demo matchups could be scored.")
+
+        logging.info("Precomputing interactive demo grid (pitcher × batter × count × leverage × platoon)...")
+        lookup, pools = generate_demo_grid(
+            pitches,
+            model,
+            data_dir=args.data_dir,
+            season=seasons[-1],
+        )
+        logging.info("Grid entries: %d pitchers=%d batters=%d", len(lookup), len(pools["pitchers"]), len(pools["batters"]))
+
         html_path = args.html or "reports/situational_selection.html"
-        write_situational_html(recs, html_path, data_note=data_note)
+        write_situational_html(
+            recs,
+            html_path,
+            data_note=data_note,
+            lookup=lookup,
+            pools=pools,
+        )
         report_path = args.report or "reports/situational_selection.md"
         write_situational_report(recs, report_path, data_note=data_note)
         print(f"Wrote report -> {report_path}", file=sys.stderr)
-        print(f"Wrote HTML -> {html_path}", file=sys.stderr)
+        print(f"Wrote HTML -> {html_path} ({len(lookup)} grid entries)", file=sys.stderr)
         return 0
 
     if not args.pitcher or not args.batter or not args.count:

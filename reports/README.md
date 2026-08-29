@@ -20,5 +20,5 @@ Training window: MLB 2026-03-25 → 2026-08-13 (season-to-date; n=491,230).
 | `traded_pitchers.html` | Self-contained visual with shape + pairing pre/post deltas |
 | `traded_pitchers_shape.html` | Shape & pairing lab — arm/spin/extension/break + tunnel metrics, pitcher switcher |
 | `situational_selection.md` | Demo situational pitch-choice matchups (Cease/Devers, Skubal/Judge, …) |
-| `situational_selection.html` | Interactive game-card visual with matchup picker |
+| `situational_selection.html` | Interactive game-card visual — pitcher, batter, count (12), leverage, platoon dropdowns |
 | `example_select_cease_devers.md` | Cease vs Devers 1-2 high-leverage write-up |

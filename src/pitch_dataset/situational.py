@@ -8,6 +8,7 @@ single micro-decision.
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
@@ -54,6 +55,46 @@ SITUATIONAL_CONTEXT_COLS = [
 ] + SITUATIONAL_EXTRA_COLS
 
 DEFAULT_SITUATIONAL_MODEL_PATH = Path("models/situational_model.joblib")
+
+STANDARD_COUNTS: list[str] = [
+    "0-0",
+    "0-1",
+    "0-2",
+    "1-0",
+    "1-1",
+    "1-2",
+    "2-0",
+    "2-1",
+    "2-2",
+    "3-0",
+    "3-1",
+    "3-2",
+]
+
+LEVERAGE_LEVELS: list[str] = ["low", "medium", "high"]
+
+# Demo pools for interactive HTML grid (pitcher × batter × count × leverage).
+DEMO_PITCHERS: list[dict[str, Any]] = [
+    {"key": "Cease", "label": "Dylan Cease", "p_throws": "R"},
+    {"key": "Skubal", "label": "Tarik Skubal", "p_throws": "L"},
+    {"key": "Skenes", "label": "Paul Skenes", "p_throws": "R"},
+    {"key": "Gausman", "label": "Kevin Gausman", "p_throws": "R"},
+    {"key": "Soriano", "label": "José Soriano", "p_throws": "R"},
+    {"key": "Mize", "label": "Casey Mize", "p_throws": "R"},
+    {"key": "Peralta", "label": "Freddy Peralta", "p_throws": "R"},
+    {"key": "Wheeler", "label": "Zack Wheeler", "p_throws": "R"},
+]
+
+DEMO_BATTERS: list[dict[str, Any]] = [
+    {"key": "Devers", "label": "Rafael Devers", "stand": "L"},
+    {"key": "Abreu", "label": "Wilyer Abreu", "stand": "L"},
+    {"key": "Judge", "label": "Aaron Judge", "stand": "R"},
+    {"key": "Ohtani", "label": "Shohei Ohtani", "stand": "L"},
+    {"key": "Guerrero", "label": "Vladimir Guerrero Jr.", "stand": "R"},
+    {"key": "Soto", "label": "Juan Soto", "stand": "L"},
+    {"key": "Betts", "label": "Mookie Betts", "stand": "R"},
+    {"key": "Freeman", "label": "Freddie Freeman", "stand": "L"},
+]
 
 DEMO_MATCHUPS: list[dict[str, Any]] = [
     {
@@ -114,6 +155,319 @@ DEMO_MATCHUPS: list[dict[str, Any]] = [
         "label": "Gausman vs Vladimir Guerrero Jr.",
     },
 ]
+
+
+def demo_lookup_key(
+    *,
+    pitcher_id: int,
+    batter_id: int,
+    count: str,
+    leverage: str,
+    stand: str,
+    p_throws: str,
+) -> str:
+    return f"{pitcher_id}|{batter_id}|{count}|{leverage}|{stand}|{p_throws}"
+
+
+def generate_demo_grid(
+    pitches: pd.DataFrame,
+    model: SituationalModel,
+    *,
+    data_dir: Path | str = "data",
+    season: int | None = None,
+    leverage_levels: Iterable[str] | None = None,
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Precompute recommendations for demo pitcher × batter × count × leverage grid."""
+    levels = list(leverage_levels or LEVERAGE_LEVELS)
+    lookup: dict[str, dict[str, Any]] = {}
+    pools: dict[str, Any] = {
+        "pitchers": [],
+        "batters": [],
+        "counts": STANDARD_COUNTS,
+        "leverage": levels,
+        "stands": ["L", "R"],
+        "p_throws": ["L", "R"],
+    }
+    prepared = prepare_situational_pitches(
+        pitches, data_dir=data_dir, season=season
+    )
+    data_dir = Path(data_dir)
+
+    resolved_pitchers: list[dict[str, Any]] = []
+    for p_spec in DEMO_PITCHERS:
+        row = _select_player(
+            prepared, player=None, player_name=p_spec["key"], id_col="pitcher"
+        )
+        if row is None:
+            logging.warning("Demo pitcher not found: %s", p_spec["key"])
+            continue
+        pid = int(row["pitcher"])
+        pdf = prepared[prepared["pitcher"] == pid]
+        arsenal = [pt for pt in arsenal_pitch_types(pdf, min_n=25) if pt in model.pitch_types]
+        if len(arsenal) < 2:
+            arsenal = [pt for pt in arsenal_pitch_types(pdf, min_n=10) if pt in model.pitch_types]
+        if len(arsenal) < 2:
+            logging.warning("Demo pitcher %s has <2 pitch types", p_spec["key"])
+            continue
+        resolved_pitchers.append(
+            {
+                **p_spec,
+                "id": pid,
+                "name": str(pdf["player_name"].iloc[0]),
+                "df": pdf,
+                "arsenal": arsenal,
+                "arsenal_means": pitcher_arsenal_means(pdf),
+                "primary": primary_pitch_type(pdf),
+                "default_outs": int(row.get("outs_when_up", 0) or 0),
+                "default_runners": int(row.get("runners_on", 0) or 0),
+                "default_score_diff": int(row.get("score_diff", 0) or 0),
+            }
+        )
+
+    resolved_batters: list[dict[str, Any]] = []
+    for b_spec in DEMO_BATTERS:
+        row = _select_player(
+            prepared, player=None, player_name=b_spec["key"], id_col="batter"
+        )
+        if row is None:
+            logging.warning("Demo batter not found: %s", b_spec["key"])
+            continue
+        bid = int(row["batter"])
+        bdf = prepared[prepared["batter"] == bid]
+        resolved_batters.append(
+            {
+                **b_spec,
+                "id": bid,
+                "name": _batter_display_name(bid, data_dir),
+                "prior": float(bdf["batter_xwoba_prior"].median()),
+                "fg_woba": float(bdf["fg_batter_woba_platoon"].median()),
+                "fg_xwoba": float(bdf["fg_batter_xwoba_platoon"].median()),
+            }
+        )
+
+    pools["pitchers"] = [
+        {
+            "id": p["id"],
+            "key": p["key"],
+            "label": p["label"],
+            "name": p["name"],
+            "p_throws": p["p_throws"],
+        }
+        for p in resolved_pitchers
+    ]
+    pools["batters"] = [
+        {
+            "id": b["id"],
+            "key": b["key"],
+            "label": b["label"],
+            "name": b["name"],
+            "stand": b["stand"],
+        }
+        for b in resolved_batters
+    ]
+
+    total = len(resolved_pitchers) * len(resolved_batters) * len(STANDARD_COUNTS)
+    done = 0
+
+    for p in resolved_pitchers:
+        for b in resolved_batters:
+            matchup = p["df"][p["df"]["batter"] == b["id"]]
+            batter_prior = float(
+                matchup["target_xwoba"].mean()
+                if len(matchup) >= 5
+                else b["prior"]
+            )
+            default_stand = b["stand"]
+            default_pt = p["p_throws"]
+            for count in STANDARD_COUNTS:
+                done += 1
+                if done % 200 == 0:
+                    logging.info("Demo grid progress: %d / %d", done, total)
+                balls, strikes = parse_count(count)
+                for lev in levels:
+                    rec = _score_demo_situation(
+                        model,
+                        pitcher_id=p["id"],
+                        pitcher_name=p["name"],
+                        batter_id=b["id"],
+                        batter_name=b["name"],
+                        count=count,
+                        balls=balls,
+                        strikes=strikes,
+                        leverage=lev,
+                        stand=default_stand,
+                        p_throws=default_pt,
+                        pitcher_df=p["df"],
+                        arsenal=p["arsenal"],
+                        arsenal_means=p["arsenal_means"],
+                        primary=p["primary"],
+                        outs=p["default_outs"],
+                        runners_on=p["default_runners"],
+                        score_diff=p["default_score_diff"],
+                        batter_prior=batter_prior,
+                        fg_woba=b["fg_woba"],
+                        fg_xwoba=b["fg_xwoba"],
+                        n_matchup=len(matchup),
+                    )
+                    if rec is None:
+                        continue
+                    key = demo_lookup_key(
+                        pitcher_id=p["id"],
+                        batter_id=b["id"],
+                        count=count,
+                        leverage=lev,
+                        stand=default_stand,
+                        p_throws=default_pt,
+                    )
+                    lookup[key] = recommendation_to_dict(rec)
+                for st in ("L", "R"):
+                    for pt in ("L", "R"):
+                        if st == default_stand and pt == default_pt:
+                            continue
+                        rec = _score_demo_situation(
+                            model,
+                            pitcher_id=p["id"],
+                            pitcher_name=p["name"],
+                            batter_id=b["id"],
+                            batter_name=b["name"],
+                            count=count,
+                            balls=balls,
+                            strikes=strikes,
+                            leverage="medium",
+                            stand=st,
+                            p_throws=pt,
+                            pitcher_df=p["df"],
+                            arsenal=p["arsenal"],
+                            arsenal_means=p["arsenal_means"],
+                            primary=p["primary"],
+                            outs=p["default_outs"],
+                            runners_on=p["default_runners"],
+                            score_diff=p["default_score_diff"],
+                            batter_prior=batter_prior,
+                            fg_woba=b["fg_woba"],
+                            fg_xwoba=b["fg_xwoba"],
+                            n_matchup=len(matchup),
+                        )
+                        if rec is None:
+                            continue
+                        key = demo_lookup_key(
+                            pitcher_id=p["id"],
+                            batter_id=b["id"],
+                            count=count,
+                            leverage="medium",
+                            stand=st,
+                            p_throws=pt,
+                        )
+                        lookup[key] = recommendation_to_dict(rec)
+
+    return lookup, pools
+
+
+def _score_demo_situation(
+    model: SituationalModel,
+    *,
+    pitcher_id: int,
+    pitcher_name: str,
+    batter_id: int,
+    batter_name: str,
+    count: str,
+    balls: int,
+    strikes: int,
+    leverage: str,
+    stand: str,
+    p_throws: str,
+    pitcher_df: pd.DataFrame,
+    arsenal: list[str],
+    arsenal_means: pd.DataFrame,
+    primary: str,
+    outs: int,
+    runners_on: int,
+    score_diff: int,
+    batter_prior: float,
+    fg_woba: float,
+    fg_xwoba: float,
+    n_matchup: int,
+) -> SituationalRecommendation | None:
+    if len(arsenal) < 2:
+        return None
+    ctx_row = _build_context_row(
+        balls=balls,
+        strikes=strikes,
+        stand=stand,
+        p_throws=p_throws,
+        outs=outs,
+        runners_on=runners_on,
+        score_diff=score_diff,
+        leverage=leverage,
+        tto=1,
+        batter_xwoba_prior=batter_prior,
+        prev_pitch=None,
+        fg_batter_woba_platoon=fg_woba,
+        fg_batter_xwoba_platoon=fg_xwoba,
+        pitcher_df=pitcher_df,
+    )
+    feat_df = context_row_features(
+        ctx_row,
+        arsenal,
+        arsenal_means=arsenal_means,
+        primary_pitch=primary,
+    )
+    for col in SITUATIONAL_EXTRA_COLS:
+        feat_df[col] = float(ctx_row[col])
+    for pt_col in model.feature_names:
+        if pt_col.startswith(PITCH_ONEHOT_PREFIX) and pt_col not in feat_df.columns:
+            feat_df[pt_col] = 0
+
+    pred_rv = model.predict_rv(feat_df)
+    pred_xw = model.predict_xwoba(feat_df)
+    default_pt = _default_pitch_in_situation(
+        pitcher_df, balls=balls, strikes=strikes, stand=stand
+    )
+    if default_pt not in arsenal:
+        default_pt = arsenal[0]
+
+    scores = [
+        PitchScore(
+            pitch_type=pt,
+            pred_xwoba=float(pred_xw[i]),
+            pred_rv=float(pred_rv[i]),
+            is_default=(pt == default_pt),
+        )
+        for i, pt in enumerate(arsenal)
+    ]
+    scores.sort(key=lambda s: s.pred_xwoba)
+    best = scores[0]
+    best.is_recommended = True
+    default_score = next(s for s in scores if s.is_default)
+    improvement_xw = default_score.pred_xwoba - best.pred_xwoba
+    improvement_rv = best.pred_rv - default_score.pred_rv
+    proxy = float(ctx_row["leverage_proxy"])
+
+    return SituationalRecommendation(
+        pitcher_id=pitcher_id,
+        pitcher_name=pitcher_name,
+        batter_id=batter_id,
+        batter_name=batter_name,
+        count=count,
+        balls=balls,
+        strikes=strikes,
+        stand=stand,
+        p_throws=p_throws,
+        batter_side="LHH" if stand == "L" else "RHH",
+        leverage=leverage,
+        leverage_proxy=proxy,
+        outs=outs,
+        runners_on=runners_on,
+        score_diff=score_diff,
+        prev_pitch=None,
+        arsenal=arsenal,
+        default_pitch=default_pt,
+        recommended_pitch=best.pitch_type,
+        scores=scores,
+        expected_improvement_xwoba=improvement_xw,
+        expected_improvement_rv=improvement_rv,
+        meta={"n_pitcher_pitches": len(pitcher_df), "n_matchup_pitches": n_matchup},
+    )
 
 
 @dataclass
@@ -387,9 +741,7 @@ def _select_player(
     if player_name:
         needle = player_name.strip().lower()
         if id_col in {"batter", "pitcher"}:
-            from pitch_dataset.storage import read_parquet, chadwick_register_path
-
-            reg = read_parquet(chadwick_register_path("data"))
+            reg = _chadwick_register(Path("data"))
             mask = reg["name_last"].str.lower().str.contains(needle, regex=False)
             if " " in needle or "," in needle:
                 parts = [p for p in needle.replace(",", " ").split() if p]
@@ -531,11 +883,13 @@ def recommend_pitch(
     tto: int = 1,
     data_dir: Path | str = "data",
     season: int | None = None,
+    prepared: pd.DataFrame | None = None,
 ) -> SituationalRecommendation:
     """Score each arsenal pitch for a single situational decision."""
-    prepared = prepare_situational_pitches(
-        pitches, data_dir=data_dir, season=season
-    )
+    if prepared is None:
+        prepared = prepare_situational_pitches(
+            pitches, data_dir=data_dir, season=season
+        )
     balls, strikes = parse_count(count)
 
     pitcher_row = _select_player(
@@ -686,11 +1040,21 @@ def recommend_pitch(
 
 
 def _batter_display_name(batter_id: int, data_dir: Path | str) -> str:
-    reg = read_parquet(chadwick_register_path(Path(data_dir)))
+    reg = _chadwick_register(Path(data_dir))
     row = reg[reg["key_mlbam"] == batter_id]
     if not row.empty:
         return f"{row.iloc[0]['name_first']} {row.iloc[0]['name_last']}"
     return str(batter_id)
+
+
+_REGISTER_CACHE: dict[str, pd.DataFrame] = {}
+
+
+def _chadwick_register(data_dir: Path) -> pd.DataFrame:
+    key = str(data_dir.resolve())
+    if key not in _REGISTER_CACHE:
+        _REGISTER_CACHE[key] = read_parquet(chadwick_register_path(data_dir))
+    return _REGISTER_CACHE[key]
 
 
 def _align_features(X: pd.DataFrame, feature_names: list[str]) -> pd.DataFrame:
@@ -821,18 +1185,29 @@ def recommendation_to_dict(rec: SituationalRecommendation) -> dict[str, Any]:
 
 
 def write_situational_html(
-    recs: list[SituationalRecommendation],
-    path: Path | str,
+    recs: list[SituationalRecommendation] | None = None,
+    path: Path | str = "reports/situational_selection.html",
     *,
     data_note: str | None = None,
+    lookup: dict[str, dict[str, Any]] | None = None,
+    pools: dict[str, Any] | None = None,
 ) -> Path:
     """Self-contained interactive HTML game card."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = [recommendation_to_dict(r) for r in recs]
-    matchups = DEMO_MATCHUPS
-    html = _HTML_TEMPLATE.replace("__DATA__", json.dumps(payload))
-    html = html.replace("__MATCHUPS__", json.dumps(matchups))
+    if lookup is not None and pools is not None:
+        html = _HTML_TEMPLATE.replace("__LOOKUP__", json.dumps(lookup))
+        html = html.replace("__POOLS__", json.dumps(pools))
+    else:
+        payload = [recommendation_to_dict(r) for r in (recs or [])]
+        legacy_lookup = {
+            str(i): d for i, d in enumerate(payload)
+        }
+        html = _HTML_TEMPLATE.replace("__LOOKUP__", json.dumps(legacy_lookup))
+        html = html.replace(
+            "__POOLS__",
+            json.dumps({"legacy": True, "matchups": DEMO_MATCHUPS}),
+        )
     html = html.replace("__DATA_NOTE__", data_note or "")
     path.write_text(html, encoding="utf-8")
     return path
@@ -856,12 +1231,16 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     h1 { font: 600 26px/1.2 sans-serif; margin: 0 0 6px; letter-spacing: -0.02em; }
     h2 { font: 600 17px/1.3 sans-serif; margin: 28px 0 10px; }
     p, .meta { color: var(--muted); margin: 0 0 10px; }
-    .controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
-    select, button {
-      font: inherit; padding: 8px 12px; border: 1px solid var(--line);
-      border-radius: 4px; background: var(--card);
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+      margin: 16px 0; padding: 14px 16px; background: var(--card);
+      border: 1px solid var(--line); border-radius: 6px;
     }
-    button { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+    .controls label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+    select {
+      font: inherit; padding: 8px 12px; border: 1px solid var(--line);
+      border-radius: 4px; background: var(--card); min-width: 160px;
+    }
     .hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
     .stat { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; }
     .stat .v { font: 600 19px/1.2 sans-serif; }
@@ -874,6 +1253,8 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     .bar-fill.def { background: #8a8a84; }
     .tag { font-size: 11px; color: var(--muted); }
     .pick-label { color: var(--pick); font-weight: 600; }
+    .empty { padding: 24px; text-align: center; color: var(--muted); }
+    @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 <body>
@@ -882,22 +1263,40 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   <p class="meta">__DATA_NOTE__</p>
   <p>Against this batter, in this count, right now — which pitch minimizes damage?</p>
   <div class="controls">
-    <select id="matchup"></select>
-    <button type="button" id="show">Show</button>
+    <label>Pitcher
+      <select id="pitcher" aria-label="Select pitcher"></select>
+    </label>
+    <label>Batter
+      <select id="batter" aria-label="Select batter"></select>
+    </label>
+    <label>Count
+      <select id="count" aria-label="Select count"></select>
+    </label>
+    <label>Leverage
+      <select id="leverage" aria-label="Select leverage">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+    </label>
+    <label>Batter stand
+      <select id="stand" aria-label="Select batter stand">
+        <option value="L">L</option>
+        <option value="R">R</option>
+      </select>
+    </label>
+    <label>Pitcher throws
+      <select id="p_throws" aria-label="Select pitcher handedness">
+        <option value="L">L</option>
+        <option value="R">R</option>
+      </select>
+    </label>
   </div>
   <div id="panel"></div>
 </main>
 <script>
-const RECS = __DATA__;
-const MATCHUPS = __MATCHUPS__;
-
-const sel = document.getElementById('matchup');
-MATCHUPS.forEach((m, i) => {
-  const o = document.createElement('option');
-  o.value = i;
-  o.textContent = m.label || `${m.pitcher} vs ${m.batter} | ${m.count}`;
-  sel.appendChild(o);
-});
+const LOOKUP = __LOOKUP__;
+const POOLS = __POOLS__;
 
 function shortName(n) {
   if (!n) return '';
@@ -906,15 +1305,105 @@ function shortName(n) {
   return p[p.length - 1];
 }
 
-function render(i) {
-  const rec = RECS[i];
+function lookupKey(pitcherId, batterId, count, leverage, stand, pThrows) {
+  return `${pitcherId}|${batterId}|${count}|${leverage}|${stand}|${pThrows}`;
+}
+
+function fillSelect(el, items, valueKey, labelKey) {
+  el.innerHTML = '';
+  items.forEach(item => {
+    const o = document.createElement('option');
+    o.value = String(item[valueKey]);
+    o.textContent = item[labelKey];
+    el.appendChild(o);
+  });
+}
+
+function initControls() {
+  if (POOLS.legacy) {
+    const sel = document.createElement('select');
+    sel.id = 'matchup';
+    POOLS.matchups.forEach((m, i) => {
+      const o = document.createElement('option');
+      o.value = i;
+      o.textContent = m.label || `${m.pitcher} vs ${m.batter} | ${m.count}`;
+      sel.appendChild(o);
+    });
+    document.querySelector('.controls').innerHTML = '';
+    document.querySelector('.controls').appendChild(sel);
+    sel.onchange = () => renderLegacy(+sel.value);
+    renderLegacy(0);
+    return;
+  }
+
+  fillSelect(document.getElementById('pitcher'), POOLS.pitchers, 'id', 'label');
+  fillSelect(document.getElementById('batter'), POOLS.batters, 'id', 'label');
+  fillSelect(document.getElementById('count'), POOLS.counts.map(c => ({v: c})), 'v', 'v');
+
+  const pSel = document.getElementById('pitcher');
+  const bSel = document.getElementById('batter');
+  const defaultPitcher = POOLS.pitchers.find(p => p.key === 'Cease') || POOLS.pitchers[0];
+  const defaultBatter = POOLS.batters.find(b => b.key === 'Devers') || POOLS.batters[0];
+  if (defaultPitcher) pSel.value = String(defaultPitcher.id);
+  if (defaultBatter) bSel.value = String(defaultBatter.id);
+  document.getElementById('count').value = '1-2';
+  document.getElementById('leverage').value = 'high';
+  syncPlatoonDefaults();
+
+  ['pitcher', 'batter', 'count', 'leverage', 'stand', 'p_throws'].forEach(id => {
+    document.getElementById(id).addEventListener('change', onControlChange);
+  });
+  pSel.addEventListener('change', () => { syncPlatoonDefaults(); render(); });
+  bSel.addEventListener('change', () => { syncPlatoonDefaults(); render(); });
+  render();
+}
+
+function syncPlatoonDefaults() {
+  const pid = document.getElementById('pitcher').value;
+  const bid = document.getElementById('batter').value;
+  const p = POOLS.pitchers.find(x => String(x.id) === pid);
+  const b = POOLS.batters.find(x => String(x.id) === bid);
+  if (p) document.getElementById('p_throws').value = p.p_throws || 'R';
+  if (b) document.getElementById('stand').value = b.stand || 'R';
+}
+
+function onControlChange() {
+  render();
+}
+
+function currentRec() {
+  const pitcherId = document.getElementById('pitcher').value;
+  const batterId = document.getElementById('batter').value;
+  const count = document.getElementById('count').value;
+  const leverage = document.getElementById('leverage').value;
+  const stand = document.getElementById('stand').value;
+  const pThrows = document.getElementById('p_throws').value;
+  return LOOKUP[lookupKey(pitcherId, batterId, count, leverage, stand, pThrows)] || null;
+}
+
+function renderLegacy(i) {
+  const rec = LOOKUP[String(i)];
   if (!rec) return;
+  renderRec(rec);
+}
+
+function render() {
+  const rec = currentRec();
+  if (!rec) {
+    document.getElementById('panel').innerHTML =
+      '<div class="card empty">No precomputed recommendation for this combination.</div>';
+    return;
+  }
+  renderRec(rec);
+}
+
+function renderRec(rec) {
   const maxX = Math.max(...rec.scores.map(s => s.pred_xwoba));
   const minX = Math.min(...rec.scores.map(s => s.pred_xwoba));
   const span = Math.max(0.001, maxX - minX);
   const imp = (-rec.expected_improvement_xwoba).toFixed(3);
   const impSign = rec.expected_improvement_xwoba >= 0 ? '' : '+';
-  let bars = rec.scores.map(s => {
+  const bars = rec.scores.map(s => {
     const w = ((s.pred_xwoba - minX) / span) * 100;
     const cls = s.is_recommended ? 'pick' : (s.is_default ? 'def' : '');
     const tag = s.is_recommended ? '<span class="pick-label">pick</span>' :
@@ -927,7 +1416,7 @@ function render(i) {
   }).join('');
   document.getElementById('panel').innerHTML = `
     <div class="hero">
-      <div class="stat"><div class="v">${shortName(rec.pitcher_name)}</div><div class="l">Pitcher</div></div>
+      <div class="stat"><div class="v">${shortName(rec.pitcher_name)}</div><div class="l">Pitcher · ${rec.p_throws}HP</div></div>
       <div class="stat"><div class="v">${shortName(rec.batter_name)}</div><div class="l">Batter · ${rec.batter_side}</div></div>
       <div class="stat"><div class="v">${rec.count}</div><div class="l">${rec.leverage} leverage</div></div>
       <div class="stat"><div class="v">${rec.recommended_pitch}</div><div class="l">vs default ${rec.default_pitch}</div></div>
@@ -939,8 +1428,7 @@ function render(i) {
     </div>`;
 }
 
-document.getElementById('show').onclick = () => render(+sel.value);
-render(0);
+initControls();
 </script>
 </body>
 </html>

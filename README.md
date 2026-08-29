@@ -11,7 +11,7 @@ Open the static arsenal optimization summary (Cease headline + top-3 ΔxwOBA):
 - **In a clone:** open [`reports/arsenal_optimization.html`](reports/arsenal_optimization.html) in your browser (double-click or `open reports/arsenal_optimization.html` on macOS).
 - **Traded deadline:** [`reports/traded_pitchers.html`](reports/traded_pitchers.html) — Skubal, Gausman, Soriano, Mize, Peralta pre/post splits.
 - **Shape & pairing lab:** [`reports/traded_pitchers_shape.html`](reports/traded_pitchers_shape.html) — arm angle, spin, extension, effective speed, API break, extended pairing/tunnel (pitcher switcher). Canvas: [`traded-pitchers-shape.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers-shape.canvas.tsx).
-- **Situational selection:** [`reports/situational_selection.html`](reports/situational_selection.html) — micro pitch-choice game cards (matchup picker). Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx).
+- **Situational selection:** [`reports/situational_selection.html`](reports/situational_selection.html) — interactive pitch-choice game cards (pitcher / batter / count / leverage / platoon dropdowns). Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx).
 - **On GitHub:** [blob view](https://github.com/gdevers/pitch-dataset/blob/main/reports/arsenal_optimization.html) shows source; GitHub’s HTML preview does **not** run the page JS well. Prefer local open, or GitHub Pages if enabled for this private repo (Pro/Team required for private Pages).
 
 Also listed under [`reports/`](reports/README.md).
@@ -303,7 +303,7 @@ uv run pitch-dataset select --demo
 - Default pitch = modal type in count/platoon, not full game-plan or catcher preference.
 - Small matchup samples (e.g. Cease vs Devers n=15) rely on model + batter priors, not head-to-head history alone.
 
-Interactive visual: [`reports/situational_selection.html`](reports/situational_selection.html). Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx). Copy to Downloads: `cp reports/situational_selection.html ~/Downloads/situational-selection-visual.html`.
+Interactive visual: [`reports/situational_selection.html`](reports/situational_selection.html) — pitcher, batter, count (all 12 standard counts), leverage, and platoon dropdowns with 3,500+ precomputed recommendations (7 demo pitchers × 7 batters). Regenerate with `uv run pitch-dataset select --demo`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx) (featured matchups; HTML is the full grid). Copy to Downloads: `cp reports/situational_selection.html ~/Downloads/situational-selection-visual.html`.
 
 ### Traded deadline analysis
 
