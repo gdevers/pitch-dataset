@@ -16,7 +16,7 @@ Logs append to `logs/update-situational.log`. Override league/season:
 LEAGUE=mlb SEASON=2026 ./scripts/update-situational.sh
 ```
 
-## Install launchd (Sunday 6:00 AM local)
+## Install launchd (Monday 4:00 PM local)
 
 Copy the plist into your user LaunchAgents folder and load it:
 
