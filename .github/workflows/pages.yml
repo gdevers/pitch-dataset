@@ -1,0 +1,68 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - reports/situational_selection.html
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync demo HTML into docs
+        run: |
+          mkdir -p docs
+          cp reports/situational_selection.html docs/index.html
+          touch docs/.nojekyll
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path("docs/index.html")
+          html = path.read_text(encoding="utf-8")
+          css = """
+            .portfolio-note {
+              font-size: 13px; color: var(--muted); margin: 0 0 14px; padding: 10px 12px;
+              background: #eef3fa; border: 1px solid #c8d8ef; border-radius: 6px;
+            }
+            .portfolio-note a { color: var(--accent); }"""
+          banner = (
+              '<p class="portfolio-note">Portfolio demo — 8 pitchers × 8 batters × 12 counts × '
+              'leverage × platoon (4,608 precomputed matchups). Full MLB roster with live model '
+              'inference runs locally via <code>uv run pitch-dataset select-web</code>. '
+              '<a href="https://github.com/gdevers/pitch-dataset">Source on GitHub</a>.</p>'
+          )
+          if "portfolio-note" not in html:
+              html = html.replace(
+                  "    @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; } }",
+                  css + "\n    @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; } }",
+              )
+              html = html.replace(
+                  "  <h1>Situational Pitch Selection</h1>\n  <p class=\"meta\">",
+                  "  <h1>Situational Pitch Selection</h1>\n  " + banner + "\n  <p class=\"meta\">",
+              )
+              path.write_text(html, encoding="utf-8")
+          PY
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deployment
+        uses: actions/deploy-pages@v4
