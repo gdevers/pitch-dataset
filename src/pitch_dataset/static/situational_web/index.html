@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Situational Pitch Selection</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<main>
+  <h1>Situational Pitch Selection</h1>
+  <p class="meta" id="data-note">Loading…</p>
+  <p>Against this batter, in this count, right now — which pitch minimizes damage?</p>
+  <div class="controls">
+    <label>Pitcher
+      <input type="search" id="pitcher-search" placeholder="Search pitchers…" autocomplete="off" />
+      <select id="pitcher" aria-label="Select pitcher" size="1"></select>
+    </label>
+    <label>Batter
+      <input type="search" id="batter-search" placeholder="Search batters…" autocomplete="off" />
+      <select id="batter" aria-label="Select batter" size="1"></select>
+    </label>
+    <label>Count
+      <select id="count" aria-label="Select count"></select>
+    </label>
+    <label>Leverage
+      <select id="leverage" aria-label="Select leverage">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+    </label>
+    <label>Batter stand
+      <select id="stand" aria-label="Select batter stand">
+        <option value="L">L</option>
+        <option value="R">R</option>
+      </select>
+    </label>
+    <label>Pitcher throws
+      <select id="p_throws" aria-label="Select pitcher handedness">
+        <option value="L">L</option>
+        <option value="R">R</option>
+      </select>
+    </label>
+  </div>
+  <div id="panel"><div class="card empty">Select a pitcher and batter to see recommendations.</div></div>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

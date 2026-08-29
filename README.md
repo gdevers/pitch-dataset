@@ -23,7 +23,8 @@ Also listed under [`reports/`](reports/README.md).
 | `notebooks/arsenal_optimization.ipynb` | **Start here** — hiring walkthrough: data → features → outcome model → optimize → example recommendations |
 | `src/pitch_dataset/arsenal.py` | All arsenal logic in one module (features, model, optimize, report) |
 | `src/pitch_dataset/situational.py` | Micro pitch-choice engine (context + pitch type → xwOBA; `recommend_pitch`) |
-| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `optimize` / `select` / `traded` |
+| `src/pitch_dataset/situational_web.py` | Local FastAPI server + static UI for full-roster live pitch selection |
+| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `optimize` / `select` / `select-web` / `traded` |
 | `src/pitch_dataset/mlb_api.py` | MLB Stats API schedules, rosters, transactions, lineups |
 | `src/pitch_dataset/fangraphs.py` | FanGraphs leaderboards and platoon splits |
 | `src/pitch_dataset/chadwick.py` | Chadwick player ID register |
@@ -282,9 +283,14 @@ uv run pitch-dataset select --pitcher "Cease" --batter "Devers" --count 1-2 \
   --leverage high --stand L --p-throws R --outs 2 --runners-on 1 --prev-pitch FF \
   --report reports/example_select_cease_devers.md
 
-# Demo matchups + HTML game card
+# Demo matchups + HTML game card (7 demo pitchers × 7 batters, precomputed grid)
 uv run pitch-dataset select --demo
 # -> reports/situational_selection.md, reports/situational_selection.html
+
+# Full roster + live model inference (local web server)
+uv run pitch-dataset train-select --league mlb --season 2026   # prerequisite
+uv run pitch-dataset select-web
+# -> http://127.0.0.1:8765/  (all pitchers/batters from pitches_mlb_2026.parquet)
 ```
 
 ### Method
@@ -303,7 +309,14 @@ uv run pitch-dataset select --demo
 - Default pitch = modal type in count/platoon, not full game-plan or catcher preference.
 - Small matchup samples (e.g. Cease vs Devers n=15) rely on model + batter priors, not head-to-head history alone.
 
-Interactive visual: [`reports/situational_selection.html`](reports/situational_selection.html) — pitcher, batter, count (all 12 standard counts), leverage, and platoon dropdowns with 3,500+ precomputed recommendations (7 demo pitchers × 7 batters). Regenerate with `uv run pitch-dataset select --demo`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx) (featured matchups; HTML is the full grid). Copy to Downloads: `cp reports/situational_selection.html ~/Downloads/situational-selection-visual.html`.
+**Two interactive UIs:**
+
+| UI | Command | Scope |
+| --- | --- | --- |
+| **Demo HTML** (static, no server) | `uv run pitch-dataset select --demo` | 7 demo pitchers × 7 batters; 3,500+ precomputed recommendations. Open [`reports/situational_selection.html`](reports/situational_selection.html) in a browser. |
+| **Full roster web app** (live inference) | `uv run pitch-dataset select-web` | Every pitcher and batter in `pitches_mlb_{season}.parquet`; scores on each change via `recommend_pitch()`. Open **http://127.0.0.1:8765/** after start. Requires trained `models/situational_model.joblib` (`train-select`). |
+
+Static files for the web app live under `src/pitch_dataset/static/situational_web/`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx) (featured matchups; demo HTML is the precomputed grid).
 
 ### Traded deadline analysis
 

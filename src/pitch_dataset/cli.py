@@ -41,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_train_select_parser(sub)
     _add_optimize_parser(sub)
     _add_select_parser(sub)
+    _add_select_web_parser(sub)
     _add_traded_parser(sub)
 
     args = parser.parse_args(argv)
@@ -69,6 +70,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_optimize(args)
     if args.command == "select":
         return _cmd_select(args)
+    if args.command == "select-web":
+        return _cmd_select_web(args)
     if args.command == "traded":
         return _cmd_traded(args)
 
@@ -329,6 +332,37 @@ def _add_select_parser(sub: argparse._SubParsersAction) -> None:
         "--demo",
         action="store_true",
         help="Run built-in demo matchups and write reports/situational_selection.html",
+    )
+
+
+def _add_select_web_parser(sub: argparse._SubParsersAction) -> None:
+    web = sub.add_parser(
+        "select-web",
+        help="Local web UI for situational pitch selection (full roster, live inference)",
+    )
+    web.add_argument(
+        "--host",
+        type=str,
+        default="127.0.0.1",
+        help="Bind host (default: 127.0.0.1)",
+    )
+    web.add_argument(
+        "--port",
+        type=int,
+        default=8765,
+        help="Bind port (default: 8765)",
+    )
+    web.add_argument("--season", type=int, default=DEFAULT_SEASON)
+    web.add_argument(
+        "--league",
+        choices=("mlb", "minors", "all"),
+        default="mlb",
+    )
+    web.add_argument("--data-dir", type=str, default="data")
+    web.add_argument(
+        "--model-path",
+        type=str,
+        default="models/situational_model.joblib",
     )
 
 
@@ -731,6 +765,20 @@ def _cmd_select(args: argparse.Namespace) -> int:
     if args.html:
         out = write_situational_html([rec], args.html, data_note=data_note)
         print(f"Wrote HTML -> {out}", file=sys.stderr)
+    return 0
+
+
+def _cmd_select_web(args: argparse.Namespace) -> int:
+    from pitch_dataset.situational_web import run_select_web
+
+    run_select_web(
+        host=args.host,
+        port=args.port,
+        data_dir=args.data_dir,
+        season=args.season,
+        league=args.league,
+        model_path=args.model_path,
+    )
     return 0
 
 
