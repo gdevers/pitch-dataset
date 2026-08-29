@@ -36,3 +36,6 @@ build/
 # Credentials
 credentials*
 *.pem
+
+# Local automation logs
+logs/

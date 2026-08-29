@@ -276,6 +276,9 @@ uv run pitch-dataset train-select --league mlb --season 2026
 # optional multi-season: --seasons 2025,2026
 ```
 
+**Weekly local refresh (macOS):** `./scripts/update-situational.sh` runs `pull-all` then `train-select` for MLB 2026. Optional launchd schedule — see [`scripts/README.md`](scripts/README.md).
+
+
 ### Select
 
 ```bash
