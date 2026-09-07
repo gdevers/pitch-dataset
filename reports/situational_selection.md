@@ -1,6 +1,6 @@
 # Situational Pitch Selection Report
 
-_Situational model scored on MLB 2026 pitches (2026-03-25 → 2026-08-30, n=606,903). Micro pitch-choice (not season usage optimization)._
+_Situational model scored on MLB 2026 pitches (2026-03-25 → 2026-09-06, n=635,803). Micro pitch-choice (not season usage optimization)._
 
 Micro pitch-choice recommendations: which pitch **minimizes predicted xwOBA** for this batter, count, and game state — not season-long usage optimization.
 
@@ -14,12 +14,12 @@ Micro pitch-choice recommendations: which pitch **minimizes predicted xwOBA** fo
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| FF | 0.256 | -0.0031 | pick |
-| SI | 0.282 | +0.0072 |  |
-| ST | 0.285 | +0.0097 |  |
-| SL | 0.285 | +0.0084 | default |
-| CH | 0.288 | +0.0081 |  |
-| KC | 0.292 | +0.0097 |  |
+| FF | 0.251 | -0.0091 | pick |
+| SL | 0.280 | +0.0103 | default |
+| SI | 0.289 | +0.0118 |  |
+| ST | 0.293 | +0.0129 |  |
+| KC | 0.300 | +0.0138 |  |
+| CH | 0.302 | +0.0128 |  |
 
 ## Cease vs Abreu
 
@@ -30,54 +30,54 @@ Micro pitch-choice recommendations: which pitch **minimizes predicted xwOBA** fo
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| FF | 0.263 | -0.0043 | pick |
-| CH | 0.287 | +0.0074 |  |
-| SL | 0.289 | +0.0073 |  |
-| ST | 0.289 | +0.0086 |  |
-| KC | 0.310 | +0.0076 |  |
-| SI | 0.319 | +0.0065 |  |
+| FF | 0.262 | -0.0087 | pick |
+| SL | 0.290 | +0.0077 |  |
+| SI | 0.293 | +0.0068 |  |
+| ST | 0.300 | +0.0112 |  |
+| CH | 0.304 | +0.0077 |  |
+| KC | 0.316 | +0.0139 |  |
 
 ## Skubal vs Judge
 
 - Count: **2-2** | RHH vs LHP | high leverage (proxy 0.65)
 - Outs: 2 | Runners on: 2 | Score diff (fld-bat): -1
-- Recommended: **CU** (default in situation: CH)
-- Expected improvement vs default: **-0.016 xwOBA**
+- Recommended: **FF** (default in situation: CH)
+- Expected improvement vs default: **-0.025 xwOBA**
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| CU | 0.289 | +0.0104 | pick |
-| FF | 0.293 | +0.0117 |  |
-| SL | 0.295 | +0.0135 |  |
-| SI | 0.298 | +0.0171 |  |
-| CH | 0.304 | +0.0117 | default |
+| FF | 0.288 | +0.0062 | pick |
+| CU | 0.294 | +0.0160 |  |
+| SI | 0.300 | +0.0154 |  |
+| SL | 0.302 | +0.0151 |  |
+| CH | 0.314 | +0.0204 | default |
 
 ## Skenes vs Ohtani
 
 - Count: **1-1** | LHH vs RHP | medium leverage (proxy 0.40)
 - Outs: 0 | Runners on: 0 | Score diff (fld-bat): 0
-- Recommended: **FS** (default in situation: FF)
-- Expected improvement vs default: **-0.024 xwOBA**
+- Recommended: **ST** (default in situation: FF)
+- Expected improvement vs default: **-0.008 xwOBA**
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| FS | 0.282 | +0.0084 | pick |
-| SL | 0.283 | +0.0095 |  |
-| SI | 0.296 | +0.0106 |  |
-| ST | 0.296 | +0.0095 |  |
-| FF | 0.306 | +0.0149 | default |
-| CH | 0.309 | +0.0092 |  |
+| ST | 0.298 | +0.0172 | pick |
+| SL | 0.301 | +0.0174 |  |
+| SI | 0.303 | +0.0169 |  |
+| FF | 0.305 | +0.0201 | default |
+| FS | 0.311 | +0.0193 |  |
+| CH | 0.315 | +0.0200 |  |
 
 ## Gausman vs Guerrero
 
 - Count: **3-2** | RHH vs RHP | high leverage (proxy 0.65)
 - Outs: 2 | Runners on: 1 | Score diff (fld-bat): 1
-- Recommended: **FS** (default in situation: FF)
-- Expected improvement vs default: **-0.018 xwOBA**
+- Recommended: **SL** (default in situation: FF)
+- Expected improvement vs default: **-0.002 xwOBA**
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| FS | 0.317 | -0.0051 | pick |
-| SL | 0.332 | -0.0045 |  |
-| FF | 0.335 | -0.0002 | default |
-| CH | 0.373 | -0.0046 |  |
+| SL | 0.334 | -0.0024 | pick |
+| FF | 0.336 | +0.0037 | default |
+| FS | 0.337 | -0.0046 |  |
+| CH | 0.340 | +0.0190 |  |
