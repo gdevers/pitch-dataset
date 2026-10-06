@@ -1,6 +1,8 @@
 # Local automation (macOS)
 
-Weekly refresh for situational pitch data and `train-select` model (MLB 2026 by default).
+Weekly refresh for situational pitch data plus the `train-select` (pitch type) and `train-location` (zone) models (MLB 2026 by default).
+
+If a pull returns far fewer rows than the existing parquet (e.g. network outage), it refuses to overwrite the file and the script stops before retraining.
 
 ## Run manually
 

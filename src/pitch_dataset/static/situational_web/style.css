@@ -84,4 +84,17 @@ select {
 .empty { padding: 24px; text-align: center; color: var(--muted); }
 .error { color: #9b1c1c; }
 .loading { opacity: 0.6; }
+.loc-card { margin-top: 16px; }
+.loc-card h2 { margin-top: 0; }
+.loc-card h3 { font: 600 14px/1.3 sans-serif; margin: 0 0 6px; }
+.pt-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+.pt-tab {
+  font: inherit; font-size: 13px; padding: 5px 12px; border: 1px solid var(--line);
+  border-radius: 14px; background: var(--card); cursor: pointer;
+}
+.pt-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.loc-body { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.loc-list { flex: 1; min-width: 220px; }
+.loc-list ol { margin: 0 0 10px; padding-left: 20px; }
+.loc-list li { margin: 4px 0; }
 @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; } }

@@ -28,10 +28,12 @@ run_step() {
   local label=$1
   shift
   log "--- ${label} ---"
-  if "$@" 2>&1 | tee -a "$LOG"; then
+  local rc=0
+  "$@" 2>&1 | tee -a "$LOG" || rc=$?
+  if [[ $rc -eq 0 ]]; then
     return 0
   fi
-  log "ERROR: ${label} failed (exit $?)"
+  log "ERROR: ${label} failed (exit ${rc})"
   return 1
 }
 
@@ -45,6 +47,10 @@ if ! run_step "pull-all" "$UV" run pitch-dataset pull-all --league "$LEAGUE" --s
 fi
 
 if ! run_step "train-select" "$UV" run pitch-dataset train-select --league "$LEAGUE" --season "$SEASON"; then
+  exit 1
+fi
+
+if ! run_step "train-location" "$UV" run pitch-dataset train-location --league "$LEAGUE" --season "$SEASON"; then
   exit 1
 fi
 

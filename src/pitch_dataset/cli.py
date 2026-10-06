@@ -14,6 +14,8 @@ from pitch_dataset.savant import DEFAULT_MINOR_LEVELS
 from pitch_dataset.seasons import DEFAULT_SEASON, SUPPORTED_SEASONS
 from pitch_dataset.storage import pitch_path, read_pitches
 
+DEFAULT_LOCATION_MODEL = "models/situational_location_model.joblib"
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
@@ -39,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_sample_parser(sub)
     _add_train_parser(sub)
     _add_train_select_parser(sub)
+    _add_train_location_parser(sub)
     _add_optimize_parser(sub)
     _add_select_parser(sub)
     _add_select_web_parser(sub)
@@ -66,6 +69,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_train(args)
     if args.command == "train-select":
         return _cmd_train_select(args)
+    if args.command == "train-location":
+        return _cmd_train_location(args)
     if args.command == "optimize":
         return _cmd_optimize(args)
     if args.command == "select":
@@ -265,6 +270,43 @@ def _add_train_select_parser(sub: argparse._SubParsersAction) -> None:
         default=200,
         help="Minimum league-wide pitch-type count to include as a one-hot",
     )
+    train.add_argument(
+        "--with-location",
+        action="store_true",
+        help="Also train the step-2 location model (shares data prep)",
+    )
+    train.add_argument(
+        "--location-model-path",
+        type=str,
+        default=DEFAULT_LOCATION_MODEL,
+    )
+
+
+def _add_train_location_parser(sub: argparse._SubParsersAction) -> None:
+    train = sub.add_parser(
+        "train-location",
+        help="Train the step-2 pitch location model (zone ranking for a chosen pitch type)",
+    )
+    train.add_argument("--season", type=int, default=DEFAULT_SEASON)
+    train.add_argument(
+        "--seasons",
+        type=str,
+        default=None,
+        help="Comma-separated seasons to combine (e.g. 2025,2026)",
+    )
+    train.add_argument(
+        "--league",
+        choices=("mlb", "minors", "all"),
+        default="mlb",
+    )
+    train.add_argument("--data-dir", type=str, default="data")
+    train.add_argument(
+        "--model-path",
+        type=str,
+        default=DEFAULT_LOCATION_MODEL,
+        help="Where to write the trained location model",
+    )
+    train.add_argument("--min-pitch-n", type=int, default=200)
 
 
 def _add_select_parser(sub: argparse._SubParsersAction) -> None:
@@ -333,6 +375,17 @@ def _add_select_parser(sub: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Run built-in demo matchups and write reports/situational_selection.html",
     )
+    sel.add_argument(
+        "--location-model-path",
+        type=str,
+        default=DEFAULT_LOCATION_MODEL,
+        help="Location model for zone recommendations (skipped if missing)",
+    )
+    sel.add_argument(
+        "--no-location",
+        action="store_true",
+        help="Skip location recommendations",
+    )
 
 
 def _add_select_web_parser(sub: argparse._SubParsersAction) -> None:
@@ -363,6 +416,11 @@ def _add_select_web_parser(sub: argparse._SubParsersAction) -> None:
         "--model-path",
         type=str,
         default="models/situational_model.joblib",
+    )
+    web.add_argument(
+        "--location-model-path",
+        type=str,
+        default=DEFAULT_LOCATION_MODEL,
     )
 
 
@@ -620,11 +678,17 @@ def _parse_seasons_arg(args: argparse.Namespace) -> list[int]:
 
 
 def _cmd_train_select(args: argparse.Namespace) -> int:
-    from pitch_dataset.situational import train_situational_model
+    from pitch_dataset.situational import (
+        prepare_situational_pitches,
+        train_situational_model,
+    )
 
     seasons = _parse_seasons_arg(args)
     pitches = _load_season_frames(
         args.data_dir, seasons=seasons, league=args.league
+    )
+    prepared = prepare_situational_pitches(
+        pitches, data_dir=args.data_dir, season=seasons[-1]
     )
     model, metrics = train_situational_model(
         pitches,
@@ -632,11 +696,69 @@ def _cmd_train_select(args: argparse.Namespace) -> int:
         data_dir=args.data_dir,
         season=seasons[-1],
         min_pitch_n=args.min_pitch_n,
+        prepared=prepared,
     )
     print(json.dumps(metrics, indent=2))
     print(f"Wrote situational model -> {args.model_path}")
     print(f"Feature count: {len(model.feature_names)}")
+    if args.with_location:
+        _train_and_report_location(
+            pitches,
+            prepared=prepared,
+            model_path=args.location_model_path,
+            min_pitch_n=args.min_pitch_n,
+        )
     return 0
+
+
+def _train_and_report_location(pitches, *, prepared, model_path: str, min_pitch_n: int) -> None:
+    from pitch_dataset.location import train_location_model
+
+    model, metrics = train_location_model(
+        pitches,
+        model_path=model_path,
+        prepared=prepared,
+        min_pitch_n=min_pitch_n,
+    )
+    metrics = {k: v for k, v in metrics.items() if k != "zone_share"}
+    print(json.dumps(metrics, indent=2))
+    print(f"Wrote location model -> {model_path}")
+    print(f"Feature count: {len(model.feature_names)}")
+
+
+def _cmd_train_location(args: argparse.Namespace) -> int:
+    from pitch_dataset.situational import prepare_situational_pitches
+
+    seasons = _parse_seasons_arg(args)
+    pitches = _load_season_frames(
+        args.data_dir, seasons=seasons, league=args.league
+    )
+    prepared = prepare_situational_pitches(
+        pitches, data_dir=args.data_dir, season=seasons[-1]
+    )
+    _train_and_report_location(
+        pitches,
+        prepared=prepared,
+        model_path=args.model_path,
+        min_pitch_n=args.min_pitch_n,
+    )
+    return 0
+
+
+def _maybe_load_location_model(args: argparse.Namespace):
+    from pitch_dataset.location import load_location_model
+
+    if getattr(args, "no_location", False):
+        return None
+    path = Path(args.location_model_path)
+    if not path.exists():
+        logging.warning(
+            "No location model at %s; run `uv run pitch-dataset train-location` "
+            "for zone recommendations.",
+            path,
+        )
+        return None
+    return load_location_model(path)
 
 
 def _cmd_select(args: argparse.Namespace) -> int:
@@ -644,6 +766,7 @@ def _cmd_select(args: argparse.Namespace) -> int:
         DEMO_MATCHUPS,
         format_situational_text,
         load_situational_model,
+        prepare_situational_pitches,
         recommend_pitch,
         train_situational_model,
         write_situational_html,
@@ -670,6 +793,10 @@ def _cmd_select(args: argparse.Namespace) -> int:
         )
     else:
         model = load_situational_model(model_path)
+    location_model = _maybe_load_location_model(args)
+    prepared = prepare_situational_pitches(
+        pitches, data_dir=args.data_dir, season=seasons[-1]
+    )
 
     date_min = str(pitches["game_date"].min())[:10] if "game_date" in pitches.columns else "?"
     date_max = str(pitches["game_date"].max())[:10] if "game_date" in pitches.columns else "?"
@@ -691,6 +818,8 @@ def _cmd_select(args: argparse.Namespace) -> int:
         "tto": args.tto,
         "data_dir": args.data_dir,
         "season": seasons[-1],
+        "prepared": prepared,
+        "location_model": location_model,
     }
 
     if args.demo:
@@ -715,6 +844,8 @@ def _cmd_select(args: argparse.Namespace) -> int:
                     tto=spec.get("tto", args.tto),
                     data_dir=args.data_dir,
                     season=seasons[-1],
+                    prepared=prepared,
+                    location_model=location_model,
                 )
                 recs.append(rec)
                 print(format_situational_text(rec))
@@ -730,6 +861,8 @@ def _cmd_select(args: argparse.Namespace) -> int:
             model,
             data_dir=args.data_dir,
             season=seasons[-1],
+            location_model=location_model,
+            prepared=prepared,
         )
         logging.info("Grid entries: %d pitchers=%d batters=%d", len(lookup), len(pools["pitchers"]), len(pools["batters"]))
 
@@ -778,6 +911,7 @@ def _cmd_select_web(args: argparse.Namespace) -> int:
         season=args.season,
         league=args.league,
         model_path=args.model_path,
+        location_model_path=args.location_model_path,
     )
     return 0
 

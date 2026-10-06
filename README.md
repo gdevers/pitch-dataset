@@ -23,8 +23,9 @@ Also listed under [`reports/`](reports/README.md).
 | `notebooks/arsenal_optimization.ipynb` | **Start here** — hiring walkthrough: data → features → outcome model → optimize → example recommendations |
 | `src/pitch_dataset/arsenal.py` | All arsenal logic in one module (features, model, optimize, report) |
 | `src/pitch_dataset/situational.py` | Micro pitch-choice engine (context + pitch type → xwOBA; `recommend_pitch`) |
+| `src/pitch_dataset/location.py` | Step-2 location model: batter-relative zone templates → run value / xwOBA / whiff for a chosen pitch |
 | `src/pitch_dataset/situational_web.py` | Local FastAPI server + static UI for full-roster live pitch selection |
-| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `optimize` / `select` / `select-web` / `traded` |
+| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `train-location` / `optimize` / `select` / `select-web` / `traded` |
 | `src/pitch_dataset/mlb_api.py` | MLB Stats API schedules, rosters, transactions, lineups |
 | `src/pitch_dataset/fangraphs.py` | FanGraphs leaderboards and platoon splits |
 | `src/pitch_dataset/chadwick.py` | Chadwick player ID register |
@@ -34,6 +35,7 @@ Also listed under [`reports/`](reports/README.md).
 | `reports/` | Example markdown recommendations (e.g. Cease) |
 | `models/outcome_model.joblib` | Trained demo artifact (arsenal optimization) |
 | `models/situational_model.joblib` | Trained situational pitch-selection model |
+| `models/situational_location_model.joblib` | Trained step-2 location model (zone ranking per pitch type) |
 
 Dataset plumbing (`pipeline`, `savant`, `storage`, `seasons`) stays separate from the arsenal story.
 
@@ -254,7 +256,7 @@ uv run pitch-dataset optimize --top 3 --train-if-missing --report reports/exampl
 | --- | --- | --- |
 | Question | Is this pitcher using his pitches optimally over the season? | Against *this* batter, in *this* count, right now — which pitch minimizes damage? |
 | Output | Reallocate pitch-type **usage %** (e.g. SL 24% → 39%) | Pick **one pitch** from the arsenal for this moment |
-| Location | Holds zone/plate fixed | Excludes zone/plate (unknown pre-throw) |
+| Location | Holds zone/plate fixed | Type model excludes zone/plate (unknown pre-throw); separate step-2 location model ranks zones for the chosen pitch |
 | Extra context | Season segments (platoon, count buckets) | Leverage proxy, FanGraphs batter platoon splits, explicit game state |
 
 Example:
@@ -276,7 +278,7 @@ uv run pitch-dataset train-select --league mlb --season 2026
 # optional multi-season: --seasons 2025,2026
 ```
 
-**Weekly local refresh (macOS):** `./scripts/update-situational.sh` runs `pull-all` then `train-select` for MLB 2026. Optional launchd schedule — see [`scripts/README.md`](scripts/README.md).
+**Weekly local refresh (macOS):** `./scripts/update-situational.sh` runs `pull-all`, `train-select`, then `train-location` for MLB 2026. Optional launchd schedule — see [`scripts/README.md`](scripts/README.md).
 
 
 ### Select
@@ -311,6 +313,26 @@ uv run pitch-dataset select-web
 - Leverage is a simple proxy (inning + score + runners), not full WPA/LI.
 - Default pitch = modal type in count/platoon, not full game-plan or catcher preference.
 - Small matchup samples (e.g. Cease vs Devers n=15) rely on model + batter priors, not head-to-head history alone.
+
+### Location (step 2)
+
+After the pitch type is chosen, a **separate** model ranks where to throw it. Location never enters the type model.
+
+```bash
+uv run pitch-dataset train-location --league mlb --season 2026
+# writes models/situational_location_model.joblib (or: train-select --with-location)
+```
+
+`select`, `select --demo`, and `select-web` pick it up automatically when the artifact exists (`--no-location` to skip). The web app also serves `GET /api/locations?pitcher=Cease&batter=Devers&count=1-2&pitch_type=SL`.
+
+| Piece | Approach |
+| --- | --- |
+| Templates | 13 batter-relative zones: 3×3 in-zone grid (`up/mid/down` × `in/mid/away`, center = `heart`) + 4 chase quadrants (`chase_{up,down}_{in,away}`, Statcast 11–14 style). `waste` (far off / dirt) is trained on but never recommended. Horizontal is flipped for LHH so *in/away* means the same for both sides; vertical is normalized to each batter's `sz_bot`/`sz_top`. UI also labels glove/arm side (same-hand matchup → glove side is away). |
+| Model | `HistGradientBoostingRegressor` × 2 (delta run exp, pitch xwOBA) + `HistGradientBoostingClassifier` (whiff), on situational context + pitch type + pitcher shape + zone one-hots/geometry. |
+| Priors | Batter × zone xwOBA and whiff/swing (season-to-date, shrunk toward league zone means); league cell priors for pitch type × same-hand × zone × count, shrunk through pitch group → zone × count (fit on the training split only). |
+| Ranking | Predicted run value (count-aware; xwOBA treats every ball as 0.42). Rare cells (few league pitches for that pitch/hand/zone/count) are pulled toward the pitch's cross-zone mean by `n / (n + 100)`. Shown as **runs saved per 100 pitches**. |
+
+Caveats: assumes the pitch lands where aimed (no command/miss model); trained on observed locations, so selection effects remain (pitchers choose zones knowingly).
 
 **Two interactive UIs:**
 

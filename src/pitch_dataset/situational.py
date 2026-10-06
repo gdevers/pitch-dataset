@@ -38,6 +38,17 @@ from pitch_dataset.arsenal import (
     primary_pitch_type,
 )
 from pitch_dataset.joins import join_pitches_to_fangraphs
+from pitch_dataset.location import (
+    CANDIDATE_ZONE_IDS,
+    LocationModel,
+    LocationScore,
+    add_location_columns,
+    batter_zone_prior_table,
+    format_location_text,
+    glove_side,
+    location_scores_to_dict,
+    score_locations,
+)
 from pitch_dataset.storage import chadwick_register_path, fangraphs_path, read_parquet
 
 # Zone/location is unknown at pitch-selection time — exclude from situational features.
@@ -109,6 +120,7 @@ def _finalize_situational_features(
     return out
 
 DEFAULT_SITUATIONAL_MODEL_PATH = Path("models/situational_model.joblib")
+_ZONE_JS_PATH = Path(__file__).resolve().parent / "static" / "situational_web" / "zone_map.js"
 
 STANDARD_COUNTS: list[str] = [
     "0-0",
@@ -230,6 +242,8 @@ def generate_demo_grid(
     data_dir: Path | str = "data",
     season: int | None = None,
     leverage_levels: Iterable[str] | None = None,
+    location_model: LocationModel | None = None,
+    prepared: pd.DataFrame | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     """Precompute recommendations for demo pitcher × batter × count × leverage grid."""
     levels = list(leverage_levels or LEVERAGE_LEVELS)
@@ -241,10 +255,12 @@ def generate_demo_grid(
         "leverage": levels,
         "stands": ["L", "R"],
         "p_throws": ["L", "R"],
+        "zones": CANDIDATE_ZONE_IDS if location_model is not None else [],
     }
-    prepared = prepare_situational_pitches(
-        pitches, data_dir=data_dir, season=season
-    )
+    if prepared is None:
+        prepared = prepare_situational_pitches(
+            pitches, data_dir=data_dir, season=season
+        )
     data_dir = Path(data_dir)
 
     resolved_pitchers: list[dict[str, Any]] = []
@@ -292,6 +308,10 @@ def generate_demo_grid(
             {
                 **b_spec,
                 "id": bid,
+                "df": bdf,
+                "zone_priors": (
+                    _batter_zone_priors(location_model, bdf) if location_model else None
+                ),
                 "name": _batter_display_name(bid, data_dir),
                 "prior": float(bdf["batter_xwoba_prior"].median()),
                 "fg_woba": float(bdf["fg_batter_woba_platoon"].median()),
@@ -352,7 +372,7 @@ def generate_demo_grid(
                         stand=default_stand,
                         p_throws=default_pt,
                         pitcher_df=p["df"],
-                        batter_df=bdf,
+                        batter_df=b["df"],
                         arsenal=p["arsenal"],
                         arsenal_means=p["arsenal_means"],
                         primary=p["primary"],
@@ -363,6 +383,8 @@ def generate_demo_grid(
                         fg_woba=b["fg_woba"],
                         fg_xwoba=b["fg_xwoba"],
                         n_matchup=len(matchup),
+                        location_model=location_model,
+                        batter_zone_priors=b["zone_priors"],
                     )
                     if rec is None:
                         continue
@@ -374,7 +396,7 @@ def generate_demo_grid(
                         stand=default_stand,
                         p_throws=default_pt,
                     )
-                    lookup[key] = recommendation_to_dict(rec)
+                    lookup[key] = demo_entry_dict(rec)
                 for st in ("L", "R"):
                     for pt in ("L", "R"):
                         if st == default_stand and pt == default_pt:
@@ -392,7 +414,7 @@ def generate_demo_grid(
                             stand=st,
                             p_throws=pt,
                             pitcher_df=p["df"],
-                            batter_df=bdf,
+                            batter_df=b["df"],
                             arsenal=p["arsenal"],
                             arsenal_means=p["arsenal_means"],
                             primary=p["primary"],
@@ -403,6 +425,8 @@ def generate_demo_grid(
                             fg_woba=b["fg_woba"],
                             fg_xwoba=b["fg_xwoba"],
                             n_matchup=len(matchup),
+                            location_model=location_model,
+                            batter_zone_priors=b["zone_priors"],
                         )
                         if rec is None:
                             continue
@@ -414,7 +438,7 @@ def generate_demo_grid(
                             stand=st,
                             p_throws=pt,
                         )
-                        lookup[key] = recommendation_to_dict(rec)
+                        lookup[key] = demo_entry_dict(rec)
 
     return lookup, pools
 
@@ -444,6 +468,8 @@ def _score_demo_situation(
     fg_woba: float,
     fg_xwoba: float,
     n_matchup: int,
+    location_model: LocationModel | None = None,
+    batter_zone_priors: pd.DataFrame | None = None,
 ) -> SituationalRecommendation | None:
     if len(arsenal) < 2:
         return None
@@ -526,6 +552,12 @@ def _score_demo_situation(
         expected_improvement_xwoba=improvement_xw,
         expected_improvement_rv=improvement_rv,
         meta={"n_pitcher_pitches": len(pitcher_df), "n_matchup_pitches": n_matchup},
+        locations=(
+            score_locations(location_model, feat_df, arsenal, batter_zone_priors)
+            if location_model is not None and batter_zone_priors is not None
+            else {}
+        ),
+        glove_side=glove_side(p_throws=p_throws, stand=stand),
     )
 
 
@@ -563,6 +595,13 @@ class SituationalRecommendation:
     expected_improvement_xwoba: float
     expected_improvement_rv: float
     meta: dict[str, Any] = field(default_factory=dict)
+    locations: dict[str, list[LocationScore]] = field(default_factory=dict)
+    glove_side: str | None = None
+
+
+def _batter_zone_priors(location_model: LocationModel, batter_df: pd.DataFrame) -> pd.DataFrame:
+    bdf = batter_df if "loc_zone" in batter_df.columns else add_location_columns(batter_df)
+    return batter_zone_prior_table(bdf, location_model.league_zone)
 
 
 @dataclass
@@ -721,10 +760,12 @@ def train_situational_model(
     test_size: float = 0.2,
     random_state: int = 42,
     min_pitch_n: int = 200,
+    prepared: pd.DataFrame | None = None,
 ) -> tuple[SituationalModel, dict[str, Any]]:
-    prepared = prepare_situational_pitches(
-        pitches, data_dir=data_dir, season=season
-    )
+    if prepared is None:
+        prepared = prepare_situational_pitches(
+            pitches, data_dir=data_dir, season=season
+        )
     pitch_types = arsenal_pitch_types(prepared, min_n=min_pitch_n)
     if len(pitch_types) < 2:
         pitch_types = arsenal_pitch_types(prepared, min_n=50)
@@ -945,8 +986,12 @@ def recommend_pitch(
     data_dir: Path | str = "data",
     season: int | None = None,
     prepared: pd.DataFrame | None = None,
+    location_model: LocationModel | None = None,
 ) -> SituationalRecommendation:
-    """Score each arsenal pitch for a single situational decision."""
+    """Score each arsenal pitch for a single situational decision.
+
+    With ``location_model``, also ranks location templates for every arsenal pitch type.
+    """
     if prepared is None:
         prepared = prepare_situational_pitches(
             pitches, data_dir=data_dir, season=season
@@ -1033,9 +1078,8 @@ def recommend_pitch(
 
     arsenal_means = pitcher_arsenal_means(pitcher_df)
     primary = primary_pitch_type(pitcher_df)
-    batter_pt_priors = batter_pitch_type_prior_table(
-        prepared.loc[prepared["batter"] == batter_id]
-    )
+    batter_df = prepared.loc[prepared["batter"] == batter_id]
+    batter_pt_priors = batter_pitch_type_prior_table(batter_df)
     feat_df = _finalize_situational_features(
         context_row_features(
             ctx_row,
@@ -1077,6 +1121,15 @@ def recommend_pitch(
     proxy = float(ctx_row["leverage_proxy"])
     lev = leverage or leverage_label(proxy)
 
+    locations: dict[str, list[LocationScore]] = {}
+    if location_model is not None:
+        locations = score_locations(
+            location_model,
+            feat_df,
+            arsenal,
+            _batter_zone_priors(location_model, batter_df),
+        )
+
     return SituationalRecommendation(
         pitcher_id=pitcher_id,
         pitcher_name=pitcher_name,
@@ -1101,6 +1154,8 @@ def recommend_pitch(
         expected_improvement_xwoba=improvement_xw,
         expected_improvement_rv=improvement_rv,
         meta={"n_pitcher_pitches": len(pitcher_df), "n_matchup_pitches": len(matchup)},
+        locations=locations,
+        glove_side=glove_side(p_throws=p_throws, stand=stand),
     )
 
 
@@ -1146,6 +1201,13 @@ def format_situational_text(rec: SituationalRecommendation) -> str:
         f"Expected improvement vs default: "
         f"{-rec.expected_improvement_xwoba:+.3f} xwOBA"
     )
+    loc_scores = rec.locations.get(rec.recommended_pitch)
+    if loc_scores:
+        lines.append(
+            format_location_text(
+                rec.recommended_pitch, loc_scores, glove=rec.glove_side or "away"
+            )
+        )
     return "\n".join(lines)
 
 
@@ -1204,6 +1266,21 @@ def _format_rec_md(rec: SituationalRecommendation) -> list[str]:
         lines.append(
             f"| {s.pitch_type} | {s.pred_xwoba:.3f} | {s.pred_rv:+.4f} | {flag} |"
         )
+    loc_scores = rec.locations.get(rec.recommended_pitch)
+    if loc_scores:
+        lines.append("")
+        lines.append(
+            f"Top locations for **{rec.recommended_pitch}** "
+            f"(batter-relative; glove side = {rec.glove_side}):"
+        )
+        lines.append("")
+        lines.append("| Rank | Location | Runs saved /100 | Pred xwOBA | Whiff |")
+        lines.append("| ---: | --- | ---: | ---: | ---: |")
+        for s in loc_scores[:3]:
+            lines.append(
+                f"| {s.rank} | {s.label} | {-100 * s.pred_rv:+.2f} | "
+                f"{s.pred_xwoba:.3f} | {100 * s.pred_whiff:.1f}% |"
+            )
     return lines
 
 
@@ -1246,7 +1323,33 @@ def recommendation_to_dict(rec: SituationalRecommendation) -> dict[str, Any]:
             }
             for s in rec.scores
         ],
+        "stand": rec.stand,
+        "glove_side": rec.glove_side,
+        "locations": {pt: location_scores_to_dict(s) for pt, s in rec.locations.items()},
     }
+
+
+def demo_entry_dict(rec: SituationalRecommendation) -> dict[str, Any]:
+    """Compact demo-grid entry: per pitch type, runs saved/1000 per zone (whiff % only for
+    the recommended pitch, to keep the static demo small).
+
+    Arrays follow ``CANDIDATE_ZONE_IDS`` order (also published as ``POOLS.zones``).
+    """
+    out = recommendation_to_dict(rec)
+    out.pop("locations")
+    if rec.locations:
+        compact: dict[str, dict[str, list[int]]] = {}
+        for pt, scores in rec.locations.items():
+            by_zone = {s.zone: s for s in scores}
+            compact[pt] = {
+                "rs": [round(-1000 * by_zone[z].pred_rv) for z in CANDIDATE_ZONE_IDS]
+            }
+            if pt == rec.recommended_pitch:
+                compact[pt]["wh"] = [
+                    round(100 * by_zone[z].pred_whiff) for z in CANDIDATE_ZONE_IDS
+                ]
+        out["loc"] = compact
+    return out
 
 
 def write_situational_html(
@@ -1260,15 +1363,16 @@ def write_situational_html(
     """Self-contained interactive HTML game card."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    html = _HTML_TEMPLATE.replace("__ZONE_JS__", _ZONE_JS_PATH.read_text(encoding="utf-8"))
     if lookup is not None and pools is not None:
-        html = _HTML_TEMPLATE.replace("__LOOKUP__", json.dumps(lookup))
+        html = html.replace("__LOOKUP__", json.dumps(lookup, separators=(",", ":")))
         html = html.replace("__POOLS__", json.dumps(pools))
     else:
         payload = [recommendation_to_dict(r) for r in (recs or [])]
         legacy_lookup = {
             str(i): d for i, d in enumerate(payload)
         }
-        html = _HTML_TEMPLATE.replace("__LOOKUP__", json.dumps(legacy_lookup))
+        html = html.replace("__LOOKUP__", json.dumps(legacy_lookup))
         html = html.replace(
             "__POOLS__",
             json.dumps({"legacy": True, "matchups": DEMO_MATCHUPS}),
@@ -1319,6 +1423,17 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     .tag { font-size: 11px; color: var(--muted); }
     .pick-label { color: var(--pick); font-weight: 600; }
     .empty { padding: 24px; text-align: center; color: var(--muted); }
+    .loc-card { margin-top: 16px; }
+    .loc-card h2 { margin-top: 0; }
+    .loc-card h3 { font: 600 14px/1.3 sans-serif; margin: 0 0 6px; }
+    .pt-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+    .pt-tab { font: inherit; font-size: 13px; padding: 5px 12px; border: 1px solid var(--line);
+      border-radius: 14px; background: var(--card); cursor: pointer; }
+    .pt-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .loc-body { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    .loc-list { flex: 1; min-width: 220px; }
+    .loc-list ol { margin: 0 0 10px; padding-left: 20px; }
+    .loc-list li { margin: 4px 0; }
     @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
@@ -1359,6 +1474,9 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   </div>
   <div id="panel"></div>
 </main>
+<script>
+__ZONE_JS__
+</script>
 <script>
 const LOOKUP = __LOOKUP__;
 const POOLS = __POOLS__;
@@ -1490,7 +1608,55 @@ function renderRec(rec) {
       <h2>Recommended: ${rec.recommended_pitch}${rec.recommended_pitch !== rec.default_pitch ? ` (not ${rec.default_pitch})` : ''}</h2>
       <p>Expected improvement vs default: <strong>${impSign}${imp} xwOBA</strong></p>
       ${bars}
+    </div>
+    <div class="card loc-card" id="loc-card"></div>`;
+  locRec = rec;
+  locPitch = rec.recommended_pitch;
+  renderLocations();
+}
+
+let locRec = null;
+let locPitch = null;
+
+function locationCells(rec, pt) {
+  if (rec.loc && rec.loc[pt]) {
+    const zones = POOLS.zones || [];
+    const d = rec.loc[pt];
+    const cells = zones.map((z, i) => ({ zone: z, value: d.rs[i] / 10, whiff: d.wh ? d.wh[i] : null }));
+    cells.slice().sort((a, b) => b.value - a.value).forEach((c, i) => { c.rank = i + 1; });
+    return cells;
+  }
+  return ((rec.locations || {})[pt] || []).map(l => ({
+    zone: l.zone, rank: l.rank, value: -100 * l.pred_rv, whiff: 100 * l.pred_whiff, xwoba: l.pred_xwoba, n: l.support_n,
+  }));
+}
+
+function renderLocations() {
+  const card = document.getElementById('loc-card');
+  if (!card || !locRec) return;
+  const rec = locRec;
+  if (!locationCells(rec, rec.recommended_pitch).length) {
+    card.remove();
+    return;
+  }
+  const tabs = rec.scores.map(s => {
+    const active = s.pitch_type === locPitch ? ' active' : '';
+    return `<button type="button" class="pt-tab${active}" data-pt="${s.pitch_type}">${s.pitch_type}${s.is_recommended ? ' ★' : ''}</button>`;
+  }).join('');
+  const cells = locationCells(rec, locPitch);
+  const stand = rec.stand || (rec.batter_side === 'LHH' ? 'L' : 'R');
+  card.innerHTML = `
+    <h2>Where to throw it: ${locPitch}${locPitch === rec.recommended_pitch ? ' (recommended pitch)' : ''}</h2>
+    <p>Step 2 location model, ranked by predicted run value for this pitch, count, and batter. Click a pitch to see its map.</p>
+    <div class="pt-tabs">${tabs}</div>
+    <div class="loc-body">
+      <div class="loc-map">${zoneMapSVG(cells, { stand, gloveSide: rec.glove_side, pitchType: locPitch })}${zoneMapLegend()}</div>
+      <div class="loc-list"><h3>Top 3</h3><ol>${zoneTopList(cells, 3)}</ol>
+        <p class="tag">Assumes the pitch lands where aimed (no command error). Hover a cell for details.</p></div>
     </div>`;
+  card.querySelectorAll('.pt-tab').forEach(btn => {
+    btn.addEventListener('click', () => { locPitch = btn.dataset.pt; renderLocations(); });
+  });
 }
 
 initControls();

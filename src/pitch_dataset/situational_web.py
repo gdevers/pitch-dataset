@@ -9,10 +9,17 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from pitch_dataset.location import (
+    CANDIDATE_ZONE_IDS,
+    LOCATION_ZONES,
+    add_location_columns,
+    load_location_model,
+    location_scores_to_dict,
+)
 from pitch_dataset.situational import (
     STANDARD_COUNTS,
     load_situational_model,
@@ -37,6 +44,7 @@ class WebState:
     data_note: str
     data_dir: Path
     season: int
+    location_model: Any = None
 
 
 def _player_name_from_register(
@@ -135,6 +143,7 @@ def load_web_state(
     season: int = 2026,
     league: str = "mlb",
     model_path: str = "models/situational_model.joblib",
+    location_model_path: str | None = "models/situational_location_model.joblib",
 ) -> WebState:
     leagues = ["mlb", "minors"] if league == "all" else [league]
     frames: list[pd.DataFrame] = []
@@ -157,6 +166,15 @@ def load_web_state(
 
     prepared = prepare_situational_pitches(pitches, data_dir=data_dir, season=season)
     model = load_situational_model(model_path)
+    location_model = None
+    if location_model_path and Path(location_model_path).exists():
+        location_model = load_location_model(location_model_path)
+        prepared = add_location_columns(prepared)
+    elif location_model_path:
+        logging.warning(
+            "No location model at %s; run `uv run pitch-dataset train-location`.",
+            location_model_path,
+        )
 
     date_min = (
         str(pitches["game_date"].min())[:10] if "game_date" in pitches.columns else "?"
@@ -180,6 +198,7 @@ def load_web_state(
         data_note=data_note,
         data_dir=Path(data_dir),
         season=season,
+        location_model=location_model,
     )
 
 
@@ -200,6 +219,8 @@ def create_app(state: WebState) -> FastAPI:
             "n_pitchers": len(state.pitchers),
             "n_batters": len(state.batters),
             "season": state.season,
+            "location_enabled": state.location_model is not None,
+            "zones": [z for z in LOCATION_ZONES if z["id"] in CANDIDATE_ZONE_IDS],
         }
 
     @app.get("/api/pitchers")
@@ -216,55 +237,54 @@ def create_app(state: WebState) -> FastAPI:
     ) -> list[dict[str, Any]]:
         return _filter_roster(state.batters, q, limit)
 
-    @app.get("/api/recommend")
-    def api_recommend(
-        pitcher_id: int | None = Query(None),
-        batter_id: int | None = Query(None),
-        pitcher: str | None = Query(None, description="Pitcher name (fuzzy match)"),
-        batter: str | None = Query(None, description="Batter name (fuzzy match)"),
-        count: str = Query(..., description='Count e.g. "1-2"'),
-        leverage: str | None = Query(None, pattern="^(low|medium|high)$"),
-        stand: str | None = Query(None, pattern="^[LR]$"),
-        p_throws: str | None = Query(None, alias="p_throws", pattern="^[LR]$"),
-        outs: int | None = Query(None, ge=0, le=2),
-        runners_on: int | None = Query(None, ge=0, le=3, alias="runners_on"),
-        score_diff: int | None = Query(None, alias="score_diff"),
-        prev_pitch: str | None = Query(None, alias="prev_pitch"),
-        tto: int = Query(1, ge=1, le=3),
-    ) -> dict[str, Any]:
-        pid = pitcher_id
-        bid = batter_id
-        if pid is None and pitcher:
-            pid = pitcher
-        if bid is None and batter:
-            bid = batter
-        if pid is None or bid is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Provide pitcher_id/batter_id or pitcher/batter name params.",
-            )
+    def _recommend(params: dict[str, Any]):
         try:
-            rec = recommend_pitch(
+            return recommend_pitch(
                 state.pitches,
                 state.model,
-                pitcher=pid,
-                batter=bid,
-                count=count,
-                leverage=leverage,
-                outs=outs,
-                stand=stand,
-                p_throws=p_throws,
-                runners_on=runners_on,
-                score_diff=score_diff,
-                prev_pitch=prev_pitch,
-                tto=tto,
+                **params,
                 data_dir=state.data_dir,
                 season=state.season,
                 prepared=state.prepared,
+                location_model=state.location_model,
             )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
-        return recommendation_to_dict(rec)
+
+    @app.get("/api/recommend")
+    def api_recommend(params: dict[str, Any] = Depends(_situation_params)) -> dict[str, Any]:
+        return recommendation_to_dict(_recommend(params))
+
+    @app.get("/api/locations")
+    def api_locations(
+        params: dict[str, Any] = Depends(_situation_params),
+        pitch_type: str | None = Query(
+            None, description="Pitch type to rank zones for (default: recommended pitch)"
+        ),
+    ) -> dict[str, Any]:
+        if state.location_model is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Location model not loaded; run `uv run pitch-dataset train-location`.",
+            )
+        rec = _recommend(params)
+        pt = (pitch_type or rec.recommended_pitch).upper()
+        if pt not in rec.locations:
+            raise HTTPException(
+                status_code=404,
+                detail=f"{pt} not in {rec.pitcher_name}'s modeled arsenal {rec.arsenal}",
+            )
+        return {
+            "pitcher_name": rec.pitcher_name,
+            "batter_name": rec.batter_name,
+            "count": rec.count,
+            "stand": rec.stand,
+            "p_throws": rec.p_throws,
+            "glove_side": rec.glove_side,
+            "pitch_type": pt,
+            "recommended_pitch": rec.recommended_pitch,
+            "locations": location_scores_to_dict(rec.locations[pt]),
+        }
 
     @app.get("/")
     def index() -> FileResponse:
@@ -276,6 +296,43 @@ def create_app(state: WebState) -> FastAPI:
     return app
 
 
+def _situation_params(
+    pitcher_id: int | None = Query(None),
+    batter_id: int | None = Query(None),
+    pitcher: str | None = Query(None, description="Pitcher name (fuzzy match)"),
+    batter: str | None = Query(None, description="Batter name (fuzzy match)"),
+    count: str = Query(..., description='Count e.g. "1-2"'),
+    leverage: str | None = Query(None, pattern="^(low|medium|high)$"),
+    stand: str | None = Query(None, pattern="^[LR]$"),
+    p_throws: str | None = Query(None, alias="p_throws", pattern="^[LR]$"),
+    outs: int | None = Query(None, ge=0, le=2),
+    runners_on: int | None = Query(None, ge=0, le=3, alias="runners_on"),
+    score_diff: int | None = Query(None, alias="score_diff"),
+    prev_pitch: str | None = Query(None, alias="prev_pitch"),
+    tto: int = Query(1, ge=1, le=3),
+) -> dict[str, Any]:
+    pid: int | str | None = pitcher_id if pitcher_id is not None else pitcher
+    bid: int | str | None = batter_id if batter_id is not None else batter
+    if pid is None or bid is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide pitcher_id/batter_id or pitcher/batter name params.",
+        )
+    return {
+        "pitcher": pid,
+        "batter": bid,
+        "count": count,
+        "leverage": leverage,
+        "outs": outs,
+        "stand": stand,
+        "p_throws": p_throws,
+        "runners_on": runners_on,
+        "score_diff": score_diff,
+        "prev_pitch": prev_pitch,
+        "tto": tto,
+    }
+
+
 def run_select_web(
     *,
     host: str = DEFAULT_HOST,
@@ -284,6 +341,7 @@ def run_select_web(
     season: int = 2026,
     league: str = "mlb",
     model_path: str = "models/situational_model.joblib",
+    location_model_path: str | None = "models/situational_location_model.joblib",
 ) -> None:
     import uvicorn
 
@@ -293,10 +351,11 @@ def run_select_web(
         season=season,
         league=league,
         model_path=model_path,
+        location_model_path=location_model_path,
     )
     app = create_app(state)
     url = f"http://{host}:{port}/"
-    print(f"Situational pitch selection server ready")
+    print("Situational pitch selection server ready")
     print(f"  Open in browser: {url}")
     print(f"  Pitchers: {len(state.pitchers):,}  Batters: {len(state.batters):,}")
     print(f"  {state.data_note}")

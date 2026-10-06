@@ -70,7 +70,53 @@ function renderRec(rec) {
       <h2>Recommended: ${rec.recommended_pitch}${rec.recommended_pitch !== rec.default_pitch ? ` (not ${rec.default_pitch})` : ''}</h2>
       <p>Expected improvement vs default: <strong>${impSign}${imp} xwOBA</strong></p>
       ${bars}
+    </div>
+    <div class="card loc-card" id="loc-card"></div>`;
+  locRec = rec;
+  locPitch = rec.recommended_pitch;
+  renderLocations();
+}
+
+let locRec = null;
+let locPitch = null;
+
+function locationCells(rec, pt) {
+  return ((rec.locations || {})[pt] || []).map(l => ({
+    zone: l.zone,
+    rank: l.rank,
+    value: -100 * l.pred_rv,
+    whiff: 100 * l.pred_whiff,
+    xwoba: l.pred_xwoba,
+    n: l.support_n,
+  }));
+}
+
+function renderLocations() {
+  const card = document.getElementById('loc-card');
+  if (!card || !locRec) return;
+  const rec = locRec;
+  if (!rec.locations || !Object.keys(rec.locations).length) {
+    card.innerHTML = '<h2>Location</h2><p>No location model loaded. Run <code>uv run pitch-dataset train-location</code>.</p>';
+    return;
+  }
+  const tabs = rec.scores.map(s => {
+    const active = s.pitch_type === locPitch ? ' active' : '';
+    const tag = s.is_recommended ? ' ★' : '';
+    return `<button type="button" class="pt-tab${active}" data-pt="${s.pitch_type}">${s.pitch_type}${tag}</button>`;
+  }).join('');
+  const cells = locationCells(rec, locPitch);
+  card.innerHTML = `
+    <h2>Where to throw it: ${locPitch}${locPitch === rec.recommended_pitch ? ' (recommended pitch)' : ''}</h2>
+    <p>Step 2 location model, ranked by predicted run value for this pitch, count, and batter. Click a pitch to see its map.</p>
+    <div class="pt-tabs">${tabs}</div>
+    <div class="loc-body">
+      <div class="loc-map">${zoneMapSVG(cells, { stand: rec.stand, gloveSide: rec.glove_side, pitchType: locPitch })}${zoneMapLegend()}</div>
+      <div class="loc-list"><h3>Top 3</h3><ol>${zoneTopList(cells, 3)}</ol>
+        <p class="tag">Assumes the pitch lands where aimed (no command error). Hover a cell for details; low league n means the value was shrunk toward this pitch's average.</p></div>
     </div>`;
+  card.querySelectorAll('.pt-tab').forEach(btn => {
+    btn.addEventListener('click', () => { locPitch = btn.dataset.pt; renderLocations(); });
+  });
 }
 
 async function fetchRecommend() {

@@ -73,6 +73,7 @@ def pull_pitches(
             out: Path | None = None
             if write:
                 out = pitch_path(data_dir, season=season, league=lg)
+                _guard_against_shrinking_write(frame, out)
                 write_pitches(frame, out)
                 logger.info("Wrote %s rows -> %s", len(frame), out)
             results.append(
@@ -87,6 +88,28 @@ def pull_pitches(
                 )
             )
     return results
+
+
+class ShrinkingPullError(RuntimeError):
+    """Raised instead of overwriting a parquet with far fewer rows (e.g. network outage)."""
+
+
+def _guard_against_shrinking_write(
+    frame: pd.DataFrame, path: Path, *, min_ratio: float = 0.5
+) -> None:
+    if not path.exists():
+        return
+    import pyarrow.parquet as pq
+
+    try:
+        existing = pq.ParquetFile(path).metadata.num_rows
+    except Exception:  # noqa: BLE001 - unreadable file is safe to replace
+        return
+    if existing > 0 and len(frame) < existing * min_ratio:
+        raise ShrinkingPullError(
+            f"Refusing to overwrite {path} ({existing:,} rows) with {len(frame):,} rows; "
+            "the pull likely failed (network/Savant outage)."
+        )
 
 
 def _expand_leagues(league: LeagueChoice) -> list[str]:
