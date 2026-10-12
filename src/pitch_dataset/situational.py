@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
@@ -841,24 +842,20 @@ def _select_player(
             player_name = str(player)
 
     if player_name:
-        needle = player_name.strip().lower()
+        candidates = _name_candidates(player_name)
+        if not candidates:
+            return None
         if id_col in {"batter", "pitcher"}:
             reg = _chadwick_register(Path("data"))
-            mask = reg["name_last"].str.lower().str.contains(needle, regex=False)
-            if " " in needle or "," in needle:
-                parts = [p for p in needle.replace(",", " ").split() if p]
-                if len(parts) >= 2:
-                    mask = mask & reg["name_last"].str.lower().str.contains(
-                        parts[-1], regex=False
-                    )
-                    if parts[0] not in parts[-1]:
-                        mask = mask & reg["name_first"].str.lower().str.contains(
-                            parts[0], regex=False
-                        )
-            hits = reg[mask]
-            if not hits.empty:
-                ids_in_data = set(df[id_col].dropna().astype(int).unique())
-                hits = hits[hits["key_mlbam"].isin(ids_in_data)]
+            ids_in_data = set(df[id_col].dropna().astype(int).unique())
+            reg = reg[reg["key_mlbam"].isin(ids_in_data)]
+            first = reg["name_first"].fillna("").astype(str).map(_normalize_name)
+            last = reg["name_last"].fillna("").astype(str).map(_normalize_name)
+            for cand_first, cand_last in candidates:
+                mask = last.str.contains(cand_last, regex=False)
+                if cand_first:
+                    mask = mask & first.str.startswith(cand_first)
+                hits = reg[mask]
                 if not hits.empty:
                     counts = df[id_col].value_counts()
                     hits = hits.assign(
@@ -866,11 +863,60 @@ def _select_player(
                     ).sort_values("_n", ascending=False)
                     bid = int(hits.iloc[0]["key_mlbam"])
                     return df[df[id_col] == bid].iloc[0]
-        names = df.get(name_col, pd.Series("", index=df.index)).fillna("").astype(str)
-        mask = names.str.lower().str.contains(needle, regex=False)
-        if mask.any():
-            return df[mask].iloc[0]
+        if id_col == "batter":
+            return None
+        names = (
+            df.get(name_col, pd.Series("", index=df.index))
+            .fillna("")
+            .astype(str)
+            .map(_normalize_name)
+        )
+        for cand_first, cand_last in candidates:
+            mask = names.str.contains(cand_last, regex=False)
+            if cand_first:
+                mask = mask & names.str.contains(cand_first, regex=False)
+            if mask.any():
+                return df[mask].iloc[0]
     return None
+
+
+_NAME_SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
+
+
+def _normalize_name(name: str) -> str:
+    """Lowercase, strip accents and periods, collapse whitespace."""
+    text = unicodedata.normalize("NFKD", name)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return " ".join(text.lower().replace(".", " ").split())
+
+
+def _name_candidates(name: str) -> list[tuple[str, str]]:
+    """(first, last) interpretations of a query, most likely first.
+
+    Handles "Last, First", "First Last", multi-word last names, and last-name-only
+    (first == ""). Generational suffixes are dropped.
+    """
+    if "," in name:
+        last_part, _, first_part = name.partition(",")
+        first_tokens = [
+            t for t in _normalize_name(first_part).split() if t not in _NAME_SUFFIXES
+        ]
+        last_tokens = [
+            t for t in _normalize_name(last_part).split() if t not in _NAME_SUFFIXES
+        ]
+        if not last_tokens:
+            return []
+        return [(" ".join(first_tokens), " ".join(last_tokens))]
+
+    tokens = [t for t in _normalize_name(name).split() if t not in _NAME_SUFFIXES]
+    if not tokens:
+        return []
+    if len(tokens) == 1:
+        return [("", tokens[0])]
+    candidates = [(tokens[0], " ".join(tokens[1:]))]
+    if len(tokens) > 2:
+        candidates.append((" ".join(tokens[:-1]), tokens[-1]))
+    return candidates
 
 
 def _default_pitch_in_situation(
