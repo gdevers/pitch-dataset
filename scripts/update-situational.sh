@@ -24,6 +24,20 @@ log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')" "$*" | tee -a "$LOG"
 }
 
+FORCE="${FORCE:-0}"
+if [[ "${1:-}" == "--force" ]]; then
+  FORCE=1
+fi
+
+# Scheduled (launchd) runs skip if a run already succeeded today; manual runs never skip.
+if [[ "$FORCE" != "1" && "${XPC_SERVICE_NAME:-}" == "com.grantdevers.pitch-dataset-update" ]]; then
+  TODAY="$(date '+%Y-%m-%d')"
+  if [[ -f "$LOG" ]] && grep -q "^\[${TODAY} [^]]*\] SUCCESS:" "$LOG"; then
+    log "already updated today, skipping scheduled run"
+    exit 0
+  fi
+fi
+
 run_step() {
   local label=$1
   shift
