@@ -1,6 +1,6 @@
 # Situational Pitch Selection Report
 
-_Situational model scored on MLB 2026 pitches (2026-03-25 → 2026-10-05, n=721,682). Micro pitch-choice (not season usage optimization)._
+_Situational model scored on MLB 2026 pitches (2026-03-25 → 2026-10-11, n=724,326). Micro pitch-choice (not season usage optimization)._
 
 Micro pitch-choice recommendations: which pitch **minimizes predicted xwOBA** for this batter, count, and game state — not season-long usage optimization.
 
@@ -10,24 +10,24 @@ Micro pitch-choice recommendations: which pitch **minimizes predicted xwOBA** fo
 - Outs: 2 | Runners on: 1 | Score diff (fld-bat): 0
 - Previous pitch: **FF**
 - Recommended: **FF** (default in situation: SL)
-- Expected improvement vs default: **-0.031 xwOBA**
+- Expected improvement vs default: **-0.044 xwOBA**
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| FF | 0.255 | -0.0004 | pick |
-| SL | 0.286 | +0.0085 | default |
-| ST | 0.291 | +0.0142 |  |
-| SI | 0.292 | +0.0174 |  |
-| KC | 0.293 | +0.0210 |  |
-| CH | 0.305 | +0.0111 |  |
+| FF | 0.253 | +0.0071 | pick |
+| KC | 0.296 | +0.0147 |  |
+| SL | 0.297 | +0.0135 | default |
+| SI | 0.299 | +0.0123 |  |
+| ST | 0.300 | +0.0166 |  |
+| CH | 0.309 | +0.0164 |  |
 
 Top locations for **FF** (batter-relative; glove side = in):
 
 | Rank | Location | Runs saved /100 | Pred xwOBA | Whiff |
 | ---: | --- | ---: | ---: | ---: |
-| 1 | Up & away | +2.73 | 0.162 | 30.4% |
-| 2 | Down & away | +2.47 | 0.143 | 5.3% |
-| 3 | Down & in | +1.85 | 0.158 | 5.7% |
+| 1 | Down & away | +2.99 | 0.175 | 6.6% |
+| 2 | Up & away | +2.45 | 0.190 | 27.4% |
+| 3 | Chase up & in | +1.99 | 0.240 | 19.7% |
 
 ## Cease vs Abreu
 
@@ -38,20 +38,20 @@ Top locations for **FF** (batter-relative; glove side = in):
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| FF | 0.264 | -0.0025 | pick |
-| SL | 0.292 | +0.0041 |  |
-| SI | 0.294 | +0.0083 |  |
-| ST | 0.294 | +0.0099 |  |
-| CH | 0.297 | +0.0040 |  |
-| KC | 0.303 | +0.0106 |  |
+| FF | 0.251 | -0.0093 | pick |
+| SL | 0.292 | +0.0053 |  |
+| SI | 0.294 | +0.0024 |  |
+| CH | 0.302 | +0.0041 |  |
+| KC | 0.303 | +0.0082 |  |
+| ST | 0.310 | +0.0067 |  |
 
 Top locations for **FF** (batter-relative; glove side = in):
 
 | Rank | Location | Runs saved /100 | Pred xwOBA | Whiff |
 | ---: | --- | ---: | ---: | ---: |
-| 1 | Down & away | +2.97 | 0.143 | 6.0% |
-| 2 | Down, middle | +2.59 | 0.168 | 6.6% |
-| 3 | Chase up & in | +2.28 | 0.232 | 20.0% |
+| 1 | Down & away | +4.27 | 0.146 | 5.6% |
+| 2 | Up & in | +2.82 | 0.170 | 11.6% |
+| 3 | Down, middle | +2.76 | 0.145 | 5.3% |
 
 ## Skubal vs Judge
 
@@ -62,62 +62,63 @@ Top locations for **FF** (batter-relative; glove side = in):
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| FF | 0.281 | +0.0086 | pick |
-| SL | 0.285 | +0.0147 |  |
-| CU | 0.285 | +0.0087 |  |
-| CH | 0.294 | +0.0198 |  |
-| SI | 0.303 | +0.0200 |  |
+| FF | 0.282 | +0.0154 | pick |
+| SL | 0.282 | +0.0126 |  |
+| CU | 0.288 | +0.0158 |  |
+| SI | 0.292 | +0.0096 |  |
+| CH | 0.302 | +0.0097 |  |
 
 Top locations for **FF** (batter-relative; glove side = in):
 
 | Rank | Location | Runs saved /100 | Pred xwOBA | Whiff |
 | ---: | --- | ---: | ---: | ---: |
-| 1 | Down & in | +2.74 | 0.174 | 5.3% |
-| 2 | Down & away | +1.86 | 0.180 | 8.9% |
-| 3 | Up & away | +1.50 | 0.205 | 23.2% |
+| 1 | Down & in | +2.94 | 0.185 | 3.6% |
+| 2 | Down & away | +2.41 | 0.183 | 7.4% |
+| 3 | Middle in | +1.27 | 0.231 | 8.2% |
 
 ## Skenes vs Ohtani
 
 - Count: **1-1** | LHH vs RHP | medium leverage (proxy 0.40)
 - Outs: 0 | Runners on: 0 | Score diff (fld-bat): 0
-- Recommended: **ST** (default in situation: FF)
-- Expected improvement vs default: **-0.005 xwOBA**
+- Recommended: **SL** (default in situation: FF)
+- Expected improvement vs default: **-0.010 xwOBA**
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| ST | 0.292 | +0.0383 | pick |
-| FS | 0.295 | +0.0188 |  |
-| FF | 0.296 | +0.0206 | default |
-| SL | 0.299 | +0.0381 |  |
-| SI | 0.300 | +0.0179 |  |
-| CH | 0.308 | +0.0162 |  |
+| SL | 0.284 | +0.0149 | pick |
+| ST | 0.290 | +0.0167 |  |
+| FF | 0.294 | +0.0188 | default |
+| SI | 0.295 | +0.0088 |  |
+| FS | 0.300 | +0.0156 |  |
+| CH | 0.306 | +0.0182 |  |
 
-Top locations for **ST** (batter-relative; glove side = in):
+Top locations for **SL** (batter-relative; glove side = in):
 
 | Rank | Location | Runs saved /100 | Pred xwOBA | Whiff |
 | ---: | --- | ---: | ---: | ---: |
-| 1 | Down & away | +0.53 | 0.184 | 8.6% |
-| 2 | Up & away | +0.33 | 0.181 | 10.6% |
-| 3 | Middle away | +0.28 | 0.209 | 8.1% |
+| 1 | Down & away | +1.31 | 0.210 | 12.9% |
+| 2 | Up & away | +1.31 | 0.200 | 13.6% |
+| 3 | Middle away | +1.10 | 0.222 | 10.7% |
 
 ## Gausman vs Guerrero
 
 - Count: **3-2** | RHH vs RHP | high leverage (proxy 0.65)
 - Outs: 2 | Runners on: 1 | Score diff (fld-bat): 1
 - Recommended: **FS** (default in situation: FF)
-- Expected improvement vs default: **-0.021 xwOBA**
+- Expected improvement vs default: **-0.016 xwOBA**
 
 | Pitch | Pred xwOBA | Pred RV | |
 | --- | ---: | ---: | --- |
-| FS | 0.317 | -0.0161 | pick |
-| SL | 0.325 | -0.0045 |  |
-| FF | 0.338 | +0.0014 | default |
-| CH | 0.370 | +0.0152 |  |
+| FS | 0.315 | -0.0101 | pick |
+| ST | 0.328 | -0.0012 |  |
+| FF | 0.331 | -0.0001 | default |
+| SL | 0.335 | -0.0032 |  |
+| CH | 0.350 | -0.0027 |  |
 
 Top locations for **FS** (batter-relative; glove side = away):
 
 | Rank | Location | Runs saved /100 | Pred xwOBA | Whiff |
 | ---: | --- | ---: | ---: | ---: |
-| 1 | Down, middle | +4.42 | 0.221 | 17.3% |
-| 2 | Down & away | +4.11 | 0.191 | 16.9% |
-| 3 | Up & in | +3.76 | 0.198 | 3.1% |
+| 1 | Down, middle | +3.65 | 0.216 | 18.6% |
+| 2 | Down & away | +3.35 | 0.179 | 15.6% |
+| 3 | Up & in | +3.01 | 0.195 | 4.2% |
