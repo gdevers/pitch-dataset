@@ -46,6 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_select_parser(sub)
     _add_select_web_parser(sub)
     _add_traded_parser(sub)
+    _add_field_parser(sub)
 
     args = parser.parse_args(argv)
     logging.basicConfig(
@@ -79,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_select_web(args)
     if args.command == "traded":
         return _cmd_traded(args)
+    if args.command == "field":
+        return _cmd_field(args)
 
     parser.error(f"Unknown command: {args.command}")
     return 2
@@ -511,6 +514,92 @@ def _add_traded_parser(sub: argparse._SubParsersAction) -> None:
         default=None,
         help="Optional JSON export of analysis payload",
     )
+
+
+def _add_field_parser(sub: argparse._SubParsersAction) -> None:
+    fld = sub.add_parser(
+        "field",
+        help="Pitch-to-field: where a hitter's contact goes by pitch type and location",
+    )
+    fld.add_argument("--batter", type=str, default=None, help="Batter name or MLBAM id")
+    fld.add_argument("--pitch-type", type=str, default="SL", help="Pitch type, e.g. SL, FF, CH")
+    fld.add_argument(
+        "--zone",
+        type=str,
+        default=None,
+        help="Batter-relative zone id, e.g. down_away (default: all zones)",
+    )
+    fld.add_argument("--stand", type=str, choices=("L", "R"), default=None)
+    fld.add_argument(
+        "--seasons",
+        type=str,
+        default="2025,2026",
+        help="Comma-separated seasons to pool (default: 2025,2026)",
+    )
+    fld.add_argument("--league", choices=("mlb", "minors"), default="mlb")
+    fld.add_argument("--data-dir", type=str, default="data")
+    fld.add_argument(
+        "--demo",
+        action="store_true",
+        help="Precompute the portfolio hitter set and write a self-contained HTML page",
+    )
+    fld.add_argument(
+        "--hitters",
+        type=str,
+        default=None,
+        help="Semicolon-separated hitter names for --demo (default: built-in list)",
+    )
+    fld.add_argument(
+        "--html",
+        type=str,
+        default="docs/pitch-to-field.html",
+        help="HTML output path for --demo (default: docs/pitch-to-field.html)",
+    )
+    fld.add_argument("--json", type=str, default=None, help="Optional JSON export of the profile")
+
+
+def _cmd_field(args: argparse.Namespace) -> int:
+    from pitch_dataset.location import ZONE_IDS
+    from pitch_dataset.spray import (
+        batter_profile,
+        build_demo_payload,
+        build_spray_model,
+        compact_profile,
+        default_stand,
+        format_field_text,
+        resolve_batter,
+        write_field_html,
+    )
+
+    seasons = [int(s) for s in args.seasons.split(",") if s.strip()]
+    model = build_spray_model(args.data_dir, seasons=seasons, league=args.league)
+    if args.demo:
+        hitters = [h.strip() for h in args.hitters.split(";")] if args.hitters else None
+        payload = build_demo_payload(model, hitters=hitters, data_dir=args.data_dir)
+        out = write_field_html(payload, args.html)
+        size_mb = out.stat().st_size / 1e6
+        names = ", ".join(h["name"] for h in payload["hitters"])
+        print(f"Wrote pitch-to-field page -> {out} ({size_mb:.2f} MB; {names})", file=sys.stderr)
+        if args.json:
+            Path(args.json).write_text(json.dumps(payload), encoding="utf-8")
+        return 0
+
+    if not args.batter:
+        raise SystemExit("--batter is required unless --demo is set.")
+    if args.zone and args.zone not in ZONE_IDS:
+        raise SystemExit(f"--zone must be one of {ZONE_IDS}")
+    bid, name = resolve_batter(model, args.batter, args.data_dir)
+    stand = args.stand or default_stand(model, bid)
+    profile = batter_profile(
+        model, bid, stand=stand, pitch_type=args.pitch_type, batter_name=name
+    )
+    for zid in [args.zone] if args.zone else ZONE_IDS:
+        print(format_field_text(profile, zid))
+        print()
+    if args.json:
+        Path(args.json).write_text(json.dumps(compact_profile(profile)), encoding="utf-8")
+        print(f"Wrote JSON -> {args.json}", file=sys.stderr)
+    return 0
 
 
 def _cmd_pull(args: argparse.Namespace) -> int:

@@ -1,0 +1,56 @@
+  <h1>Pitch-to-Field</h1>
+  <p class="lede">If I throw <strong>this pitch type</strong> to <strong>this location</strong> against
+    <strong>this hitter</strong>, where does his contact go, and how dangerous is it?</p>
+  <p class="meta" id="p2f-note">Loading…</p>
+  <div class="controls">
+    <label>Hitter
+      <input type="search" id="p2f-search" placeholder="Search hitters…" autocomplete="off" />
+      <select id="p2f-batter" aria-label="Select hitter"></select>
+    </label>
+    <label>Bats
+      <select id="p2f-stand" aria-label="Batter side"></select>
+    </label>
+    <label>Show
+      <select id="p2f-view" aria-label="Hitter or league">
+        <option value="hitter">This hitter (blended)</option>
+        <option value="league">League average, same side</option>
+      </select>
+    </label>
+    <label>Color landing spots by
+      <select id="p2f-color" aria-label="Color by">
+        <option value="xwoba">Danger: xwOBA of balls there</option>
+        <option value="hit">Hit probability there</option>
+        <option value="density">Share of contact only</option>
+      </select>
+    </label>
+    <label>Contact type
+      <select id="p2f-filter" aria-label="Contact filter">
+        <option value="all">All batted balls</option>
+        <option value="ground">Ground balls only</option>
+        <option value="air">Air balls only (LD / FB / PU)</option>
+      </select>
+    </label>
+    <label class="check"><span><input type="checkbox" id="p2f-balls" checked /> Plot his actual batted balls</span></label>
+  </div>
+  <div class="pt-tabs" id="p2f-pts" role="tablist" aria-label="Pitch type"></div>
+  <div class="card takeaway" id="p2f-takeaway"></div>
+  <div class="p2f-grid">
+    <div class="card">
+      <h2>1 · Pick a location</h2>
+      <p class="tag">Catcher's view. Cell color = his xwOBA on contact for this pitch there
+        (green = weak contact, red = damage); <em>n</em> = his own balls in play. Click a cell.</p>
+      <div id="p2f-zone"></div>
+      <button type="button" class="waste-btn" id="p2f-waste">Waste pitch (far off the plate / in the dirt)</button>
+      <div id="p2f-zone-legend"></div>
+    </div>
+    <div class="card">
+      <h2 id="p2f-field-title">2 · Where the contact goes</h2>
+      <div id="p2f-field"></div>
+      <div id="p2f-field-legend"></div>
+    </div>
+  </div>
+  <div class="card" id="p2f-summary"></div>
+  <details class="card method">
+    <summary>Method, sample sizes &amp; caveats</summary>
+    <div id="p2f-method"></div>
+  </details>
