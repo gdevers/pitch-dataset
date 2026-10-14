@@ -12,7 +12,7 @@ Open the static arsenal optimization summary (Cease headline + top-3 ΔxwOBA):
 - **Traded deadline:** [`reports/traded_pitchers.html`](reports/traded_pitchers.html) — Skubal, Gausman, Soriano, Mize, Peralta pre/post splits.
 - **Shape & pairing lab:** [`reports/traded_pitchers_shape.html`](reports/traded_pitchers_shape.html) — arm angle, spin, extension, effective speed, API break, extended pairing/tunnel (pitcher switcher). Canvas: [`traded-pitchers-shape.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers-shape.canvas.tsx).
 - **Situational selection (live demo):** [**gdevers.github.io/pitch-dataset/**](https://gdevers.github.io/pitch-dataset/) — interactive pitch-choice game cards (8×8 demo grid). Local copy: [`reports/situational_selection.html`](reports/situational_selection.html). Full roster + live inference: `uv run pitch-dataset select-web`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx).
-- **Pitch-to-field (live demo):** [**gdevers.github.io/pitch-dataset/pitch-to-field.html**](https://gdevers.github.io/pitch-dataset/pitch-to-field.html): pick a hitter, pitch type, and one of the 13 batter-relative zones to see where his contact goes on a to-scale field, colored by danger (xwOBA / hit probability), with contact mix, exit velo, whiff context, and how much of the estimate is hitter-specific. 12 precomputed hitters; full roster at `/field` in `select-web`.
+- **Pitch-to-field (live demo):** [**gdevers.github.io/pitch-dataset/pitch-to-field.html**](https://gdevers.github.io/pitch-dataset/pitch-to-field.html): pick a hitter, pitch type, and one of the 13 batter-relative zones to see where his contact goes on a to-scale field, colored by danger (xwOBA / hit probability), with contact mix, exit velo, whiff context, and how much of the estimate is hitter-specific. Modes: count / pitcher-hand filters, brush a field area to see which zones and pitches send balls there, draggable fielders with a reach model and shift-rule-aware optimizer, pitcher matchup spray, hitter-vs-league / hitter-vs-hitter compare, and a date-ordered replay. 12 precomputed hitters and 10 matchup pitchers; full roster at `/field` in `select-web`.
 - **On GitHub:** [blob view](https://github.com/gdevers/pitch-dataset/blob/main/reports/arsenal_optimization.html) shows source; GitHub’s HTML preview does **not** run the page JS well. Prefer the live Pages demo above or local open.
 
 Also listed under [`reports/`](reports/README.md).
@@ -352,7 +352,18 @@ uv run pitch-dataset field --batter "Rafael Devers" --pitch-type SL --zone down_
 uv run pitch-dataset field --demo --html docs/pitch-to-field.html                   # static Pages demo (12 hitters)
 ```
 
-`select-web` serves the full-roster page at **http://127.0.0.1:8765/field** plus JSON: `GET /api/field?batter=Rafael Devers&pitch_type=SL&zone=down_away` (omit `zone` for all 13), `/api/field/league?stand=R&pitch_type=SL`, `/api/field/batters?q=`, `/api/field/meta`. Clicking a zone on the pitch-selection location heatmap opens pitch-to-field for that pitch and zone.
+`select-web` serves the full-roster page at **http://127.0.0.1:8765/field** plus JSON: `GET /api/field?batter=Rafael Devers&pitch_type=SL&zone=down_away` (omit `zone` for all 13; optional `count=ahead|even|behind|two_strike` and `p_throws=L|R`), `/api/field/league?stand=R&pitch_type=SL` (same filters), `/api/field/detail?batter=` (balls in play with pitcher / count / EV / LA, swing counts, alignment labels), `/api/field/pitchers?q=`, `/api/field/pitcher?pitcher=Skubal` (mix × location by batter side and count), `/api/field/batters?q=`, `/api/field/meta`. Clicking a zone on the pitch-selection location heatmap opens pitch-to-field for that pitch and zone.
+
+Interactive modes (same template for Pages and the live app):
+
+| Mode | What it does |
+| --- | --- |
+| Explore & brush | Zone → field as before; drag a box on the field to light up which zones and pitch types produced the balls inside it (share and lift vs his usual mix). |
+| Filters | Count (pitcher ahead / even / behind / two strikes) and pitcher hand. Same shrinkage one level down: his balls in the slice vs his all-count profile re-weighted by the league's slice shift (league ratios smoothed with K = 200), so thin slices show more prior. |
+| Defense | 9 fielders (7 draggable) over his actual balls in play. Grounders: intercept along the spray line plus throw-vs-runner; air balls: reach radius from hang time (vacuum estimate from EV / LA). Speeds tuned so standard positions reproduce the demo hitters' actual out rate (GB ≈ 73%, air ≈ 60%). Presets: standard, his most common Statcast alignment label (positions approximated), greedy optimize under the 2023 shift rules. |
+| Pitcher matchup | Weights his blended spray by the pitcher's actual pitch mix and location share per pitch type vs that batter side (optionally by count), times his swing × in-play rate; compares to a league-average pitcher of the same hand. Live app can instead use the situational model's pick for an exact count. |
+| Compare | Hitter minus league difference map (diverging scale) or two hitters side by side. |
+| Replay | His batted balls in date order with play / pause / speed / scrub and per-ball details. |
 
 | Piece | Approach |
 | --- | --- |
@@ -362,7 +373,7 @@ uv run pitch-dataset field --demo --html docs/pitch-to-field.html               
 | Shrinkage | `(own + 25·prior) / (n + 25)`; prior = league same side × pitch type × zone, re-weighted by the hitter's overall direction and GB/air tendencies (shrunk with K = 60). EV, xwOBA on contact, and swing/whiff rates are shrunk the same way. The UI shows the hitter-specific blend weight. |
 | Danger | League xwOBA / hit rate of balls ending in each spot (same batter side). |
 
-Caveats: pitcher hand, count, and within-type pitch shape are not modeled, and this data has no fielder coordinates, so positioning hints in the takeaway are directional only.
+Caveats: within-type pitch shape is not modeled, and this data has no fielder coordinates (alignment labels only), so the defense mode is a simplified reach model: read the deltas between alignments, not absolute out rates.
 
 Static files for the web app live under `src/pitch_dataset/static/situational_web/`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx) (featured matchups; demo HTML is the precomputed grid).
 
