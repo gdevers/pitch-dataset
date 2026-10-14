@@ -28,15 +28,21 @@ from pitch_dataset.situational import (
     recommendation_to_dict,
 )
 from pitch_dataset.spray import (
+    COUNT_FILTERS,
     DEFAULT_SPRAY_SEASONS,
     LIVE_NAV,
+    batter_detail,
     batter_profile,
     build_spray_model,
     compact_profile,
     default_stand,
+    filter_profile,
     league_profile,
+    pitcher_distribution,
+    pitcher_roster,
     render_field_page,
     resolve_batter,
+    resolve_pitcher,
     spray_meta,
     spray_roster,
 )
@@ -60,6 +66,8 @@ class WebState:
     location_model: Any = None
     spray_model: Any = None
     spray_roster: list[dict[str, Any]] | None = None
+    spray_pitchers: list[dict[str, Any]] | None = None
+    zone3d_store: Any = None
 
 
 def _player_name_from_register(
@@ -204,12 +212,13 @@ def load_web_state(
         "Live inference — micro pitch-choice (not season usage optimization)."
     )
 
-    spray_model = spray_roster_list = None
+    spray_model = spray_roster_list = spray_pitchers = None
     spray_seasons = [s for s in DEFAULT_SPRAY_SEASONS if pitch_path(data_dir, season=s, league="mlb").exists()]
     if spray_seasons:
         try:
             spray_model = build_spray_model(data_dir, seasons=spray_seasons, league="mlb")
             spray_roster_list = spray_roster(spray_model, data_dir)
+            spray_pitchers = pitcher_roster(spray_model, data_dir)
         except Exception:
             logging.exception("Pitch-to-field disabled: failed to build spray tables")
 
@@ -225,6 +234,7 @@ def load_web_state(
         location_model=location_model,
         spray_model=spray_model,
         spray_roster=spray_roster_list,
+        spray_pitchers=spray_pitchers,
     )
 
 
@@ -339,6 +349,8 @@ def create_app(state: WebState) -> FastAPI:
         pitch_type: str = Query("SL", description="Pitch type, e.g. SL, FF, CH"),
         zone: str | None = Query(None, description="Zone id, e.g. down_away (default: all)"),
         stand: str | None = Query(None, pattern="^[LR]$"),
+        count: str = Query("all", description=f"Count filter: {', '.join(COUNT_FILTERS)}"),
+        p_throws: str = Query("all", pattern="^(all|L|R)$", description="Pitcher hand filter"),
     ) -> dict[str, Any]:
         model = _spray()
         query = batter_id if batter_id is not None else batter
@@ -356,6 +368,7 @@ def create_app(state: WebState) -> FastAPI:
                 batter_name=name,
                 zones=[zone] if zone else None,
             )
+            profile = filter_profile(model, profile, count=count, hand=p_throws)
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return compact_profile(profile)
@@ -364,9 +377,53 @@ def create_app(state: WebState) -> FastAPI:
     def api_field_league(
         stand: str = Query("R", pattern="^[LR]$"),
         pitch_type: str = Query("SL"),
+        count: str = Query("all"),
+        p_throws: str = Query("all", pattern="^(all|L|R)$"),
     ) -> dict[str, Any]:
+        model = _spray()
         try:
-            return compact_profile(league_profile(_spray(), stand=stand, pitch_type=pitch_type))
+            prof = league_profile(model, stand=stand, pitch_type=pitch_type)
+            return compact_profile(filter_profile(model, prof, count=count, hand=p_throws))
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.get("/api/field/detail")
+    def api_field_detail(
+        batter_id: int | None = Query(None),
+        batter: str | None = Query(None),
+    ) -> dict[str, Any]:
+        """Balls in play (date order), swing counts by count / pitcher hand, alignment labels."""
+        model = _spray()
+        query = batter_id if batter_id is not None else batter
+        if query is None:
+            raise HTTPException(status_code=400, detail="Provide batter_id or batter.")
+        try:
+            bid, _ = resolve_batter(model, query, state.data_dir)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return batter_detail(model, bid, state.data_dir)
+
+    @app.get("/api/field/pitchers")
+    def api_field_pitchers(
+        q: str | None = Query(None, description="Name or MLBAM id substring"),
+        limit: int | None = Query(None, ge=1, le=5000),
+    ) -> list[dict[str, Any]]:
+        _spray()
+        return _filter_roster(state.spray_pitchers or [], q, limit)
+
+    @app.get("/api/field/pitcher")
+    def api_field_pitcher(
+        pitcher_id: int | None = Query(None),
+        pitcher: str | None = Query(None, description='Pitcher name, e.g. "Skubal"'),
+    ) -> dict[str, Any]:
+        """Pitch mix and location distribution by batter side × count atom × pitch type × zone."""
+        model = _spray()
+        query = pitcher_id if pitcher_id is not None else pitcher
+        if query is None:
+            raise HTTPException(status_code=400, detail="Provide pitcher_id or pitcher.")
+        try:
+            pid, _ = resolve_pitcher(model, query, state.data_dir)
+            return pitcher_distribution(model, pid, state.data_dir)
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
