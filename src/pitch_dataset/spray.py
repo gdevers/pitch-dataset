@@ -1335,10 +1335,12 @@ def build_demo_payload(
 PORTFOLIO_NAV = [
     ("index.html", "Situational pitch selection"),
     ("pitch-to-field.html", "Pitch-to-field"),
+    ("zone-3d.html", "3D strike zone"),
 ]
 LIVE_NAV = [
     ("/", "Situational pitch selection"),
     ("/field", "Pitch-to-field"),
+    ("/zone3d", "3D strike zone"),
 ]
 
 

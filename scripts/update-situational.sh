@@ -73,6 +73,10 @@ if ! run_step "pitch-to-field page" "$UV" run pitch-dataset field --demo --leagu
   log "WARNING: docs/pitch-to-field.html not refreshed; continuing"
 fi
 
+if ! run_step "3D strike zone page" "$UV" run pitch-dataset zone3d --demo --league "$LEAGUE" --seasons "$SEASON" --html docs/zone-3d.html; then
+  log "WARNING: docs/zone-3d.html not refreshed; continuing"
+fi
+
 PITCH_FILE="${ROOT}/data/pitches_${LEAGUE}_${SEASON}.parquet"
 if [[ -f "$PITCH_FILE" ]]; then
   if DATE_RANGE=$("$UV" run python -c "

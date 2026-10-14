@@ -13,6 +13,7 @@ from pitch_dataset.pipeline import pull_pitches
 from pitch_dataset.savant import DEFAULT_MINOR_LEVELS
 from pitch_dataset.seasons import DEFAULT_SEASON, SUPPORTED_SEASONS
 from pitch_dataset.storage import pitch_path, read_pitches
+from pitch_dataset.zone3d import add_zone3d_parser, cmd_zone3d
 
 DEFAULT_LOCATION_MODEL = "models/situational_location_model.joblib"
 
@@ -47,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_select_web_parser(sub)
     _add_traded_parser(sub)
     _add_field_parser(sub)
+    add_zone3d_parser(sub)
 
     args = parser.parse_args(argv)
     logging.basicConfig(
@@ -82,6 +84,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_traded(args)
     if args.command == "field":
         return _cmd_field(args)
+    if args.command == "zone3d":
+        return cmd_zone3d(args)
 
     parser.error(f"Unknown command: {args.command}")
     return 2

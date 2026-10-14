@@ -48,7 +48,8 @@ jobs:
             .site-nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }"""
           nav = (
               '<nav class="site-nav"><a href="index.html" class="active">Situational pitch selection</a>'
-              '<a href="pitch-to-field.html">Pitch-to-field</a></nav>'
+              '<a href="pitch-to-field.html">Pitch-to-field</a>'
+              '<a href="zone-3d.html">3D strike zone</a></nav>'
           )
           banner = (
               '<p class="portfolio-note">Portfolio demo — 8 pitchers × 8 batters × 12 counts × '

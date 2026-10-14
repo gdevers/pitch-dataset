@@ -26,8 +26,9 @@ Also listed under [`reports/`](reports/README.md).
 | `src/pitch_dataset/situational.py` | Micro pitch-choice engine (context + pitch type → xwOBA; `recommend_pitch`) |
 | `src/pitch_dataset/location.py` | Step-2 location model: batter-relative zone templates → run value / xwOBA / whiff for a chosen pitch |
 | `src/pitch_dataset/spray.py` | Pitch-to-field: hitter × pitch type × zone spray distributions with hierarchical shrinkage, takeaways, static page writer |
-| `src/pitch_dataset/situational_web.py` | Local FastAPI server + static UI for full-roster live pitch selection and pitch-to-field |
-| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `train-location` / `optimize` / `select` / `select-web` / `traded` / `field` |
+| `src/pitch_dataset/zone3d.py` | 3D strike zone: trajectory reconstruction, 3D vs front-plane calls, tunneling, static page writer and live routes |
+| `src/pitch_dataset/situational_web.py` | Local FastAPI server + static UI for full-roster live pitch selection, pitch-to-field and the 3D strike zone |
+| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `train-location` / `optimize` / `select` / `select-web` / `traded` / `field` / `zone3d` |
 | `src/pitch_dataset/mlb_api.py` | MLB Stats API schedules, rosters, transactions, lineups |
 | `src/pitch_dataset/fangraphs.py` | FanGraphs leaderboards and platoon splits |
 | `src/pitch_dataset/chadwick.py` | Chadwick player ID register |
@@ -374,6 +375,26 @@ Interactive modes (same template for Pages and the live app):
 | Danger | League xwOBA / hit rate of balls ending in each spot (same batter side). |
 
 Caveats: within-type pitch shape is not modeled, and this data has no fielder coordinates (alignment labels only), so the defense mode is a simplified reach model: read the deltas between alignments, not absolute out rates.
+
+### 3D strike zone
+
+*What did the pitch actually do in flight, where do a pitcher's pitches stop looking alike, and how often does the flat front-plane zone disagree with the real 3D zone?*
+
+```bash
+uv run pitch-dataset zone3d --pitcher "Dylan Cease"            # text summary: mix, movement, tunnel pairs, takeaways
+uv run pitch-dataset zone3d --demo --html docs/zone-3d.html    # static Pages demo (10 pitchers, ~1.7 MB)
+```
+
+Live at **http://127.0.0.1:8765/zone3d** in `select-web` (any pitcher; filters by batter, pitch type, count, and result), with JSON at `/api/zone3d/meta`, `/api/zone3d/pitchers?q=`, `/api/zone3d/batters?pitcher_id=`, `/api/zone3d/pitches?pitcher=&batter_id=&pitch_type=&count=&result=&sample=` (sample capped at 1,500). Static demo: [**gdevers.github.io/pitch-dataset/zone-3d.html**](https://gdevers.github.io/pitch-dataset/zone-3d.html).
+
+| Piece | Approach |
+| --- | --- |
+| Flight path | Statcast's constant-acceleration 9-parameter fit (`vx0, vy0, vz0, ax, ay, az` at y = 50 ft), solved back to release and forward through the plate. Checked against published `plate_x/plate_z`: median error 0.05" (p95 0.07") at mid-plate, which is where Statcast reports them (about 1" off at the front edge). |
+| 3D zone | Plate pentagon (17" × 17") extruded from each pitch's `sz_bot` to `sz_top`. A pitch touches it if the ball (radius 1.45") reaches the prism at any of 18 depths; compared with the usual 2D box at the front plane. |
+| Tunneling | Mean position of each pitch type at the decision point (23.8 ft in front of the plate) vs at the plate; pairs ranked by plate ÷ decision-point separation. |
+| Scene | three.js r147 (vendored, MIT) inlined into the page; camera presets for catcher, batter, pitcher, side, zone close-up, field, and a tunnel view; real-time and slow-motion playback. Clicking a pitch shows its details, a Pitch-to-Field link, and, for balls in play, an approximate arc to the landing spot. |
+
+Caveats: `sz_top/sz_bot` are Statcast estimates, so single-pitch call verdicts within about 1" are noise; tunneling uses mean paths per pitch type, not consecutive pitch pairs; batted-ball arc shapes are drawn (only the endpoints are measured).
 
 Static files for the web app live under `src/pitch_dataset/static/situational_web/`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx) (featured matchups; demo HTML is the precomputed grid).
 

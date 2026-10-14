@@ -1,6 +1,8 @@
 # Local automation (macOS)
 
-Weekly refresh for situational pitch data plus the `train-select` (pitch type) and `train-location` (zone) models (MLB 2026 by default). It then regenerates `docs/pitch-to-field.html` (`pitch-dataset field --demo`); that step is non-fatal and does not commit or push.
+Weekly refresh for situational pitch data plus the `train-select` (pitch type) and `train-location` (zone) models (MLB 2026 by default). It then regenerates `docs/pitch-to-field.html` (`pitch-dataset field --demo`) and `docs/zone-3d.html` (`pitch-dataset zone3d --demo`); those steps are non-fatal and do not commit or push.
+
+`scripts/zone3d_shots.py` is a headless-Chrome smoke test for the 3D page: it saves screenshots to `logs/shots/` and exits non-zero on any console error (`--live http://127.0.0.1:8765/zone3d` to test the running server).
 
 If a pull returns far fewer rows than the existing parquet (e.g. network outage), it refuses to overwrite the file and the script stops before retraining.
 

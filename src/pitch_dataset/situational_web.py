@@ -47,6 +47,7 @@ from pitch_dataset.spray import (
     spray_roster,
 )
 from pitch_dataset.storage import pitch_path, read_pitches
+from pitch_dataset.zone3d import build_zone3d_store, register_zone3d_routes
 
 STATIC_DIR = Path(__file__).resolve().parent / "static" / "situational_web"
 DEFAULT_HOST = "127.0.0.1"
@@ -222,6 +223,14 @@ def load_web_state(
         except Exception:
             logging.exception("Pitch-to-field disabled: failed to build spray tables")
 
+    zone3d_store = None
+    try:
+        zone3d_store = build_zone3d_store(
+            data_dir, seasons=(season,), league="mlb" if league == "all" else league, pitches=pitches
+        )
+    except Exception:
+        logging.exception("3D strike zone disabled: failed to build the trajectory store")
+
     return WebState(
         model=model,
         pitches=pitches,
@@ -235,6 +244,7 @@ def load_web_state(
         spray_model=spray_model,
         spray_roster=spray_roster_list,
         spray_pitchers=spray_pitchers,
+        zone3d_store=zone3d_store,
     )
 
 
@@ -431,6 +441,8 @@ def create_app(state: WebState) -> FastAPI:
     def field_page() -> HTMLResponse:
         return HTMLResponse(render_field_page(None, nav=LIVE_NAV, active="/field"))
 
+    register_zone3d_routes(app, lambda: state.zone3d_store, nav=LIVE_NAV)
+
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
@@ -504,6 +516,8 @@ def run_select_web(
     print(f"  Open in browser: {url}")
     if state.spray_model is not None:
         print(f"  Pitch-to-field: {url}field")
+    if state.zone3d_store is not None:
+        print(f"  3D strike zone: {url}zone3d")
     print(f"  Pitchers: {len(state.pitchers):,}  Batters: {len(state.batters):,}")
     print(f"  {state.data_note}")
     uvicorn.run(app, host=host, port=port, log_level="info")
