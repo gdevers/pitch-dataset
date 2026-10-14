@@ -1,0 +1,55 @@
+/* 3D strike zone page; layered on top of field.css. */
+#z3-search, #z3-pitcher { min-width: 220px; }
+#z3-batter { min-width: 190px; }
+.z3-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 12px; }
+.z3-grid .card { margin-bottom: 0; }
+.z3-grid2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; margin-top: 12px; }
+.z3-grid2 .card { margin-bottom: 0; }
+.z3-grid2 + .card { margin-top: 12px; }
+@media (max-width: 980px) { .z3-grid, .z3-grid2 { grid-template-columns: 1fr; } }
+.z3-toolbar { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.z3-btns { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.z3-btns .pt-tab { padding: 4px 11px; }
+.z3-btns select { font: inherit; font-size: 13px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--card); }
+.z3-lab { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; width: 38px; }
+.z3-checks label { font-size: 12px; color: var(--fg); margin-right: 8px; display: inline-flex; gap: 4px; align-items: center; }
+.z3-tunnel-btn { border-style: dashed; }
+.z3-tunnel-btn.active { border-style: solid; }
+.z3-stage { position: relative; height: 560px; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: #f1f3ee; cursor: grab; }
+.z3-stage canvas { display: block; width: 100%; height: 100%; }
+.z3-stage:active { cursor: grabbing; }
+.z3-hud { position: absolute; left: 8px; top: 8px; max-width: 62%; font-size: 12px; line-height: 1.35; color: var(--fg);
+  background: rgba(255, 255, 255, 0.88); border: 1px solid var(--line); border-radius: 4px; padding: 6px 9px; pointer-events: none; }
+.z3-hud-r { left: auto; right: 8px; max-width: 40%; text-align: right; font-variant-numeric: tabular-nums; }
+.z3-hud-r:empty { display: none; }
+.z3-read { margin-top: 6px; }
+.legend .sw { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin-right: 4px; border-radius: 1px; }
+.legend .sw.dash { background: repeating-linear-gradient(90deg, #333 0 4px, transparent 4px 7px) !important; height: 2px; }
+.legend .ring { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 2px solid; vertical-align: middle; margin-right: 4px; }
+.legend .box { display: inline-block; width: 12px; height: 10px; vertical-align: middle; margin-right: 4px; border: 1px solid; }
+.legend .grp { font-weight: 600; color: var(--fg); }
+.z3-panel h2 { margin-bottom: 2px; }
+.z3-panel .kv { display: grid; grid-template-columns: 96px 1fr; gap: 3px 8px; font-size: 13px; margin: 8px 0; }
+.z3-panel .kv .k { color: var(--muted); }
+.z3-panel .sec { font: 600 11px/1.3 sans-serif; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 10px 0 2px; }
+.z3-panel .call { padding: 6px 8px; border-radius: 4px; font-size: 13px; margin: 6px 0; border-left: 4px solid var(--line); background: #f7f7f5; }
+.z3-panel .call.flag { border-left-color: #6a1b9a; background: #f6f0fa; }
+.z3-panel a { color: var(--accent); }
+.z3-panel .empty-p { font-size: 13px; color: var(--muted); }
+.z3-chip { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: baseline; margin-right: 5px; }
+.z3-tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.z3-tbl th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11px; border-bottom: 1px solid var(--line); padding: 3px 4px; }
+.z3-tbl td { padding: 3px 4px; border-bottom: 1px solid #eeeeea; }
+.z3-tbl tr.best td { background: #eef3fa; font-weight: 600; }
+.z3-tbl td.num, .z3-tbl th.num { text-align: right; }
+.z3-insets { display: flex; gap: 10px; flex-wrap: wrap; }
+.z3-insets svg { flex: 1 1 200px; max-width: 250px; background: #fbfbf9; border: 1px solid var(--line); border-radius: 4px; }
+.z3-ex { display: block; width: 100%; text-align: left; font: inherit; font-size: 12.5px; padding: 6px 8px; margin: 4px 0;
+  border: 1px solid var(--line); border-radius: 4px; background: var(--card); cursor: pointer; }
+.z3-ex:hover { border-color: var(--accent); }
+.z3-ex.active { border-color: var(--accent); background: #eef3fa; }
+.z3-ex .t { font-weight: 600; }
+.z3-ex .s { color: var(--muted); }
+.z3-counts { display: grid; grid-template-columns: 1fr auto auto; gap: 2px 12px; font-size: 13px; margin: 8px 0; font-variant-numeric: tabular-nums; }
+.z3-counts .h { font-size: 11px; color: var(--muted); }
+.z3-counts .r { text-align: right; }

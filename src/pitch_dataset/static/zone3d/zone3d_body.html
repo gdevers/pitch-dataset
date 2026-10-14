@@ -1,0 +1,85 @@
+  <h1>3D strike zone</h1>
+  <p class="lede">Every pitch as a <strong>3D flight path</strong> through the real strike zone — home plate's
+    17&Prime; pentagon extruded from the knees to the letters — with <strong>tunneling</strong> at the batter's
+    decision point, <strong>back-of-the-zone calls</strong>, and batted balls carried out to the field.</p>
+  <p class="meta" id="z3-note">Loading…</p>
+  <div class="controls">
+    <label>Pitcher
+      <input type="search" id="z3-search" placeholder="Search pitchers…" autocomplete="off" />
+      <select id="z3-pitcher" aria-label="Select pitcher"></select>
+    </label>
+    <label>Batter
+      <select id="z3-batter" aria-label="Filter by batter"></select>
+    </label>
+    <label>Pitch type
+      <select id="z3-pt" aria-label="Filter by pitch type"></select>
+    </label>
+    <label>Count
+      <select id="z3-count" aria-label="Filter by count"></select>
+    </label>
+    <label>Result
+      <select id="z3-result" aria-label="Filter by result"></select>
+    </label>
+    <label>Pitches drawn
+      <select id="z3-n" aria-label="Number of pitches drawn">
+        <option value="50">50</option>
+        <option value="100" selected>100</option>
+        <option value="200">200</option>
+        <option value="400">400</option>
+      </select>
+    </label>
+  </div>
+  <div class="card takeaway" id="z3-takeaway"></div>
+  <div class="z3-grid">
+    <div class="card z3-stage-card">
+      <h2 id="z3-title">Loading…</h2>
+      <p class="tag" id="z3-subtitle"></p>
+      <div class="z3-toolbar">
+        <div class="z3-btns" role="group" aria-label="Camera">
+          <span class="z3-lab">View</span>
+          <button type="button" class="pt-tab" data-cam="catcher">Catcher</button>
+          <button type="button" class="pt-tab" data-cam="batter">Batter's eyes</button>
+          <button type="button" class="pt-tab" data-cam="pitcher">Pitcher</button>
+          <button type="button" class="pt-tab" data-cam="side">Side (1B)</button>
+          <button type="button" class="pt-tab" data-cam="zone">Zone close-up</button>
+          <button type="button" class="pt-tab" data-cam="field">Field</button>
+          <button type="button" class="pt-tab z3-tunnel-btn" id="z3-tunnel-btn">Tunnel view</button>
+        </div>
+        <div class="z3-btns" role="group" aria-label="Playback">
+          <span class="z3-lab">Play</span>
+          <button type="button" class="pt-tab" id="z3-play">&#9654; Play</button>
+          <button type="button" class="pt-tab" id="z3-stop">Show all paths</button>
+          <select id="z3-mode" aria-label="Playback mode">
+            <option value="seq">One at a time</option>
+            <option value="all">All together</option>
+          </select>
+          <select id="z3-speed" aria-label="Playback speed">
+            <option value="1">1× real time</option>
+            <option value="0.25">0.25× slow-mo</option>
+            <option value="0.1">0.1× slow-mo</option>
+          </select>
+        </div>
+        <div class="z3-btns z3-checks">
+          <label><input type="checkbox" id="z3-show-dp" checked /> Decision-point plane</label>
+          <label><input type="checkbox" id="z3-show-arcs" checked /> Batted-ball arcs (field view)</label>
+          <label><input type="checkbox" id="z3-show-flags" checked /> Flag 3D-vs-2D calls</label>
+          <label><input type="checkbox" id="z3-show-labels" checked /> Labels</label>
+        </div>
+      </div>
+      <div class="z3-stage" id="z3-stage">
+        <div class="z3-hud" id="z3-hud"></div>
+        <div class="z3-hud z3-hud-r" id="z3-clock"></div>
+      </div>
+      <div class="legend" id="z3-legend"></div>
+      <p class="tag z3-read" id="z3-read"></p>
+    </div>
+    <div class="card z3-panel" id="z3-panel"></div>
+  </div>
+  <div class="z3-grid2">
+    <div class="card" id="z3-tunnel"></div>
+    <div class="card" id="z3-backzone"></div>
+  </div>
+  <details class="card method">
+    <summary>Method, sample sizes &amp; caveats</summary>
+    <div id="z3-method"></div>
+  </details>
