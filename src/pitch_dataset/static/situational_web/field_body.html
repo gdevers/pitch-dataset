@@ -1,6 +1,6 @@
   <h1>Pitch-to-Field</h1>
   <p class="lede">If I throw <strong>this pitch type</strong> to <strong>this location</strong> against
-    <strong>this hitter</strong>, where does his contact go, and how dangerous is it?</p>
+    <strong>this hitter</strong>, where does his contact go, how dangerous is it, and where should the defense stand?</p>
   <p class="meta" id="p2f-note">Loading…</p>
   <div class="controls">
     <label>Hitter
@@ -9,6 +9,12 @@
     </label>
     <label>Bats
       <select id="p2f-stand" aria-label="Batter side"></select>
+    </label>
+    <label>Count
+      <select id="p2f-count" aria-label="Count filter"></select>
+    </label>
+    <label>Pitcher hand
+      <select id="p2f-hand" aria-label="Pitcher hand filter"></select>
     </label>
     <label>Show
       <select id="p2f-view" aria-label="Hitter or league">
@@ -32,13 +38,15 @@
     </label>
     <label class="check"><span><input type="checkbox" id="p2f-balls" checked /> Plot his actual batted balls</span></label>
   </div>
+  <p class="tag filter-note" id="p2f-filter-note"></p>
+  <div class="mode-tabs" id="p2f-modes" role="tablist" aria-label="Mode"></div>
+  <p class="tag mode-help" id="p2f-mode-help"></p>
   <div class="pt-tabs" id="p2f-pts" role="tablist" aria-label="Pitch type"></div>
   <div class="card takeaway" id="p2f-takeaway"></div>
   <div class="p2f-grid">
     <div class="card">
-      <h2>1 · Pick a location</h2>
-      <p class="tag">Catcher's view. Cell color = his xwOBA on contact for this pitch there
-        (green = weak contact, red = damage); <em>n</em> = his own balls in play. Click a cell.</p>
+      <h2 id="p2f-left-title">1 · Pick a location</h2>
+      <p class="tag" id="p2f-left-tag"></p>
       <div id="p2f-zone"></div>
       <button type="button" class="waste-btn" id="p2f-waste">Waste pitch (far off the plate / in the dirt)</button>
       <div id="p2f-zone-legend"></div>
@@ -46,6 +54,7 @@
     <div class="card">
       <h2 id="p2f-field-title">2 · Where the contact goes</h2>
       <div id="p2f-field"></div>
+      <div id="p2f-field-extra"></div>
       <div id="p2f-field-legend"></div>
     </div>
   </div>
