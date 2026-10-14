@@ -68,6 +68,11 @@ if ! run_step "train-location" "$UV" run pitch-dataset train-location --league "
   exit 1
 fi
 
+# Portfolio page refresh is non-fatal: data + models above are the critical outputs.
+if ! run_step "pitch-to-field page" "$UV" run pitch-dataset field --demo --league "$LEAGUE" --html docs/pitch-to-field.html; then
+  log "WARNING: docs/pitch-to-field.html not refreshed; continuing"
+fi
+
 PITCH_FILE="${ROOT}/data/pitches_${LEAGUE}_${SEASON}.parquet"
 if [[ -f "$PITCH_FILE" ]]; then
   if DATE_RANGE=$("$UV" run python -c "

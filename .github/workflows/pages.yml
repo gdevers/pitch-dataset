@@ -41,7 +41,15 @@ jobs:
               font-size: 13px; color: var(--muted); margin: 0 0 14px; padding: 10px 12px;
               background: #eef3fa; border: 1px solid #c8d8ef; border-radius: 6px;
             }
-            .portfolio-note a { color: var(--accent); }"""
+            .portfolio-note a { color: var(--accent); }
+            .site-nav { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; font-size: 13px; }
+            .site-nav a { color: var(--accent); text-decoration: none; padding: 4px 10px;
+              border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+            .site-nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }"""
+          nav = (
+              '<nav class="site-nav"><a href="index.html" class="active">Situational pitch selection</a>'
+              '<a href="pitch-to-field.html">Pitch-to-field</a></nav>'
+          )
           banner = (
               '<p class="portfolio-note">Portfolio demo — 8 pitchers × 8 batters × 12 counts × '
               'leverage × platoon (4,608 precomputed matchups). Full MLB roster with live model '
@@ -55,7 +63,7 @@ jobs:
               )
               html = html.replace(
                   "  <h1>Situational Pitch Selection</h1>\n  <p class=\"meta\">",
-                  "  <h1>Situational Pitch Selection</h1>\n  " + banner + "\n  <p class=\"meta\">",
+                  "  " + nav + "\n  <h1>Situational Pitch Selection</h1>\n  " + banner + "\n  <p class=\"meta\">",
               )
               path.write_text(html, encoding="utf-8")
           PY

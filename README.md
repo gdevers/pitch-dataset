@@ -12,6 +12,7 @@ Open the static arsenal optimization summary (Cease headline + top-3 ΔxwOBA):
 - **Traded deadline:** [`reports/traded_pitchers.html`](reports/traded_pitchers.html) — Skubal, Gausman, Soriano, Mize, Peralta pre/post splits.
 - **Shape & pairing lab:** [`reports/traded_pitchers_shape.html`](reports/traded_pitchers_shape.html) — arm angle, spin, extension, effective speed, API break, extended pairing/tunnel (pitcher switcher). Canvas: [`traded-pitchers-shape.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers-shape.canvas.tsx).
 - **Situational selection (live demo):** [**gdevers.github.io/pitch-dataset/**](https://gdevers.github.io/pitch-dataset/) — interactive pitch-choice game cards (8×8 demo grid). Local copy: [`reports/situational_selection.html`](reports/situational_selection.html). Full roster + live inference: `uv run pitch-dataset select-web`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx).
+- **Pitch-to-field (live demo):** [**gdevers.github.io/pitch-dataset/pitch-to-field.html**](https://gdevers.github.io/pitch-dataset/pitch-to-field.html): pick a hitter, pitch type, and one of the 13 batter-relative zones to see where his contact goes on a to-scale field, colored by danger (xwOBA / hit probability), with contact mix, exit velo, whiff context, and how much of the estimate is hitter-specific. 12 precomputed hitters; full roster at `/field` in `select-web`.
 - **On GitHub:** [blob view](https://github.com/gdevers/pitch-dataset/blob/main/reports/arsenal_optimization.html) shows source; GitHub’s HTML preview does **not** run the page JS well. Prefer the live Pages demo above or local open.
 
 Also listed under [`reports/`](reports/README.md).
@@ -24,8 +25,9 @@ Also listed under [`reports/`](reports/README.md).
 | `src/pitch_dataset/arsenal.py` | All arsenal logic in one module (features, model, optimize, report) |
 | `src/pitch_dataset/situational.py` | Micro pitch-choice engine (context + pitch type → xwOBA; `recommend_pitch`) |
 | `src/pitch_dataset/location.py` | Step-2 location model: batter-relative zone templates → run value / xwOBA / whiff for a chosen pitch |
-| `src/pitch_dataset/situational_web.py` | Local FastAPI server + static UI for full-roster live pitch selection |
-| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `train-location` / `optimize` / `select` / `select-web` / `traded` |
+| `src/pitch_dataset/spray.py` | Pitch-to-field: hitter × pitch type × zone spray distributions with hierarchical shrinkage, takeaways, static page writer |
+| `src/pitch_dataset/situational_web.py` | Local FastAPI server + static UI for full-roster live pitch selection and pitch-to-field |
+| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `train-location` / `optimize` / `select` / `select-web` / `traded` / `field` |
 | `src/pitch_dataset/mlb_api.py` | MLB Stats API schedules, rosters, transactions, lineups |
 | `src/pitch_dataset/fangraphs.py` | FanGraphs leaderboards and platoon splits |
 | `src/pitch_dataset/chadwick.py` | Chadwick player ID register |
@@ -340,6 +342,27 @@ Caveats: assumes the pitch lands where aimed (no command/miss model); trained on
 | --- | --- | --- |
 | **Demo HTML** (static, no server) | `uv run pitch-dataset select --demo` | 7 demo pitchers × 7 batters; 3,500+ precomputed recommendations. Open [`reports/situational_selection.html`](reports/situational_selection.html) in a browser. |
 | **Full roster web app** (live inference) | `uv run pitch-dataset select-web` | Every pitcher and batter in `pitches_mlb_{season}.parquet`; scores on each change via `recommend_pitch()`. Open **http://127.0.0.1:8765/** after start. Requires trained `models/situational_model.joblib` (`train-select`). |
+
+### Pitch-to-field
+
+*If I throw this pitch type to this location against this hitter, where does his contact go, and how dangerous is it?*
+
+```bash
+uv run pitch-dataset field --batter "Rafael Devers" --pitch-type SL --zone down_away   # text summary + takeaway
+uv run pitch-dataset field --demo --html docs/pitch-to-field.html                   # static Pages demo (12 hitters)
+```
+
+`select-web` serves the full-roster page at **http://127.0.0.1:8765/field** plus JSON: `GET /api/field?batter=Rafael Devers&pitch_type=SL&zone=down_away` (omit `zone` for all 13), `/api/field/league?stand=R&pitch_type=SL`, `/api/field/batters?q=`, `/api/field/meta`. Clicking a zone on the pitch-selection location heatmap opens pitch-to-field for that pitch and zone.
+
+| Piece | Approach |
+| --- | --- |
+| Data | MLB 2025 + 2026 Statcast batted balls (2025 weighted 0.7), zones from `location.py` (same 13 batter-relative templates). |
+| Coordinates | `feet = 2.49 × (hc − home)`, home at (125.42, 198.27); checked against `hit_distance_sc` (median ratio 2.48 on HR, 2.49 on fly outs). Ground-ball points are where the ball was fielded. |
+| Bins | 12 spray-angle bins (7.5°) × 7 distance rings, split ground vs air; pull/center/oppo at ±15°. |
+| Shrinkage | `(own + 25·prior) / (n + 25)`; prior = league same side × pitch type × zone, re-weighted by the hitter's overall direction and GB/air tendencies (shrunk with K = 60). EV, xwOBA on contact, and swing/whiff rates are shrunk the same way. The UI shows the hitter-specific blend weight. |
+| Danger | League xwOBA / hit rate of balls ending in each spot (same batter side). |
+
+Caveats: pitcher hand, count, and within-type pitch shape are not modeled, and this data has no fielder coordinates, so positioning hints in the takeaway are directional only.
 
 Static files for the web app live under `src/pitch_dataset/static/situational_web/`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx) (featured matchups; demo HTML is the precomputed grid).
 
