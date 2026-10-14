@@ -13,6 +13,7 @@ Open the static arsenal optimization summary (Cease headline + top-3 ΔxwOBA):
 - **Shape & pairing lab:** [`reports/traded_pitchers_shape.html`](reports/traded_pitchers_shape.html) — arm angle, spin, extension, effective speed, API break, extended pairing/tunnel (pitcher switcher). Canvas: [`traded-pitchers-shape.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers-shape.canvas.tsx).
 - **Situational selection (live demo):** [**gdevers.github.io/pitch-dataset/**](https://gdevers.github.io/pitch-dataset/) — interactive pitch-choice game cards (8×8 demo grid). Local copy: [`reports/situational_selection.html`](reports/situational_selection.html). Full roster + live inference: `uv run pitch-dataset select-web`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx).
 - **Pitch-to-field (live demo):** [**gdevers.github.io/pitch-dataset/pitch-to-field.html**](https://gdevers.github.io/pitch-dataset/pitch-to-field.html): pick a hitter, pitch type, and one of the 13 batter-relative zones to see where his contact goes on a to-scale field, colored by danger (xwOBA / hit probability), with contact mix, exit velo, whiff context, and how much of the estimate is hitter-specific. Modes: count / pitcher-hand filters, brush a field area to see which zones and pitches send balls there, draggable fielders with a reach model and shift-rule-aware optimizer, pitcher matchup spray, hitter-vs-league / hitter-vs-hitter compare, and a date-ordered replay. 12 precomputed hitters and 10 matchup pitchers; full roster at `/field` in `select-web`.
+- **Player evaluation reports (live gallery):** [**gdevers.github.io/pitch-dataset/reports/**](https://gdevers.github.io/pitch-dataset/reports/) — two-page, print-ready pitcher and hitter evaluations (HTML + PDF) for 6 pitchers and 6 hitters: 20–80 grades, arsenal / swing-decision maps, count strategy, trends with IL overlays, comps, and a data-cited bottom line. Any player: `uv run pitch-dataset report --pitcher "Dylan Cease"` or `/reports` in `select-web`.
 - **On GitHub:** [blob view](https://github.com/gdevers/pitch-dataset/blob/main/reports/arsenal_optimization.html) shows source; GitHub’s HTML preview does **not** run the page JS well. Prefer the live Pages demo above or local open.
 
 Also listed under [`reports/`](reports/README.md).
@@ -27,8 +28,9 @@ Also listed under [`reports/`](reports/README.md).
 | `src/pitch_dataset/location.py` | Step-2 location model: batter-relative zone templates → run value / xwOBA / whiff for a chosen pitch |
 | `src/pitch_dataset/spray.py` | Pitch-to-field: hitter × pitch type × zone spray distributions with hierarchical shrinkage, takeaways, static page writer |
 | `src/pitch_dataset/zone3d.py` | 3D strike zone: trajectory reconstruction, 3D vs front-plane calls, tunneling, static page writer and live routes |
-| `src/pitch_dataset/situational_web.py` | Local FastAPI server + static UI for full-roster live pitch selection, pitch-to-field and the 3D strike zone |
-| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `train-location` / `optimize` / `select` / `select-web` / `traded` / `field` / `zone3d` |
+| `src/pitch_dataset/reports/` | Player evaluation reports: league context + Stuff model (`context`), 20–80 grades (`grades`), inline-SVG charts (`svg`), templated bottom-line engine (`narrative`), pitcher / hitter pages, PDF export, CLI and `/reports` routes |
+| `src/pitch_dataset/situational_web.py` | Local FastAPI server + static UI for full-roster live pitch selection, pitch-to-field, the 3D strike zone and player reports |
+| `src/pitch_dataset/cli.py` | `pull` / `pull-api` / `pull-fangraphs` / `pull-register` / `pull-all` / `sample` / `train-model` / `train-select` / `train-location` / `optimize` / `select` / `select-web` / `traded` / `field` / `zone3d` / `report` |
 | `src/pitch_dataset/mlb_api.py` | MLB Stats API schedules, rosters, transactions, lineups |
 | `src/pitch_dataset/fangraphs.py` | FanGraphs leaderboards and platoon splits |
 | `src/pitch_dataset/chadwick.py` | Chadwick player ID register |
@@ -417,6 +419,33 @@ Outputs: `reports/traded_pitchers.md`, `reports/traded_pitchers.html` (full shap
 Interactive visual: [`reports/arsenal_optimization.html`](reports/arsenal_optimization.html). Write-up: `reports/example_cease.md`. Excerpt:
 
 ```text
+## Player evaluation reports
+
+Two-page Letter reports in the style of an R&D / advance-scouting packet, generated end to end from the
+season's regular-season Statcast pitches, FanGraphs lines, MLB rosters/transactions and the models above.
+
+```bash
+uv run pitch-dataset report --pitcher "Dylan Cease"      # -> reports/players/dylan-cease.html + .pdf
+uv run pitch-dataset report --batter "Rafael Devers"
+uv run pitch-dataset report --team SDP                   # active roster (≥300 pitches) + index page
+uv run pitch-dataset report --portfolio                  # rebuild docs/reports/ (Pages gallery)
+uv run pitch-dataset select-web                          # -> http://127.0.0.1:8765/reports
+```
+
+- **Pitcher:** season line, Stuff / Command / Bat-missing / Contact / Durability grades, arsenal table (usage by
+  hand and count, shape, results, per-pitch 20–80), movement vs league ellipses, location heat maps, count strategy
+  vs the situational model, sequencing + tunneling, velo/spin/release trends with IL shading, comps, development notes.
+- **Hitter:** slash line + quality of contact, Hit / Power / Discipline / Pull-air / Speed grades, 13-zone swing,
+  whiff and damage maps by pitch group and pitcher hand, velo/movement bands, spray + cross-validated alignment,
+  count-bucket attack plan, count tendencies, rolling trends, platoon splits, comps.
+- **Grades:** z-score composites → percentile within a qualified pool → 50 + 10·Φ⁻¹(p), clipped 20–80. Stuff is a
+  gradient-boosted pitch-shape model of expected count-neutral run value (held-out pitch-type r ≈ 0.37).
+- **Bottom line:** a rules library scores candidate findings (best / weak / underused pitch, drift + IL, predictable
+  counts, model gaps, platoon, positioning, …), keeps the 5 most notable (one per kind); every sentence cites its number.
+- **Caveats:** single season, regular season only; situational-model effects are small and presented as direction;
+  Skenes-style low-ride fastballs grade lower on shape-only Stuff than on results; sprint speed is not in the data
+  (FanGraphs Spd is used); the fielding model behind alignment gains is simplified.
+
 ## Cease, Dylan (MLBAM 656302)
 - Overall expected xwOBA: 0.283 → 0.279 (improvement -0.004)
 

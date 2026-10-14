@@ -1336,11 +1336,13 @@ PORTFOLIO_NAV = [
     ("index.html", "Situational pitch selection"),
     ("pitch-to-field.html", "Pitch-to-field"),
     ("zone-3d.html", "3D strike zone"),
+    ("reports/index.html", "Player reports"),
 ]
 LIVE_NAV = [
     ("/", "Situational pitch selection"),
     ("/field", "Pitch-to-field"),
     ("/zone3d", "3D strike zone"),
+    ("/reports", "Player reports"),
 ]
 
 
