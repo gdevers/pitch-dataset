@@ -112,11 +112,27 @@ function renderLocations() {
     <div class="loc-body">
       <div class="loc-map">${zoneMapSVG(cells, { stand: rec.stand, gloveSide: rec.glove_side, pitchType: locPitch })}${zoneMapLegend()}</div>
       <div class="loc-list"><h3>Top 3</h3><ol>${zoneTopList(cells, 3)}</ol>
-        <p class="tag">Assumes the pitch lands where aimed (no command error). Hover a cell for details; low league n means the value was shrunk toward this pitch's average.</p></div>
+        <p class="tag">Assumes the pitch lands where aimed (no command error). Hover a cell for details; low league n means the value was shrunk toward this pitch's average.</p>
+        <p class="tag">Click a zone to see where ${shortName(rec.batter_name)}'s contact goes on that pitch and location (Pitch-to-field).</p></div>
     </div>`;
   card.querySelectorAll('.pt-tab').forEach(btn => {
     btn.addEventListener('click', () => { locPitch = btn.dataset.pt; renderLocations(); });
   });
+  card.querySelectorAll('.loc-map g[data-zone]').forEach(g => {
+    g.addEventListener('click', () => openPitchToField(rec, locPitch, g.dataset.zone));
+  });
+}
+
+const FIELD_PITCH_MAP = { FA: 'FF', KC: 'CU', SV: 'CU', CS: 'CU', FO: 'FS', SC: 'CH' };
+
+function openPitchToField(rec, pitchType, zone) {
+  const q = new URLSearchParams({
+    batter_id: document.getElementById('batter').value,
+    stand: rec.stand,
+    pitch_type: FIELD_PITCH_MAP[pitchType] || pitchType,
+    zone,
+  });
+  window.open(`/field?${q}`, '_blank');
 }
 
 async function fetchRecommend() {

@@ -10,7 +10,7 @@ from typing import Any
 
 import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from pitch_dataset.location import (
@@ -26,6 +26,19 @@ from pitch_dataset.situational import (
     prepare_situational_pitches,
     recommend_pitch,
     recommendation_to_dict,
+)
+from pitch_dataset.spray import (
+    DEFAULT_SPRAY_SEASONS,
+    LIVE_NAV,
+    batter_profile,
+    build_spray_model,
+    compact_profile,
+    default_stand,
+    league_profile,
+    render_field_page,
+    resolve_batter,
+    spray_meta,
+    spray_roster,
 )
 from pitch_dataset.storage import pitch_path, read_pitches
 
@@ -45,6 +58,8 @@ class WebState:
     data_dir: Path
     season: int
     location_model: Any = None
+    spray_model: Any = None
+    spray_roster: list[dict[str, Any]] | None = None
 
 
 def _player_name_from_register(
@@ -189,6 +204,15 @@ def load_web_state(
         "Live inference — micro pitch-choice (not season usage optimization)."
     )
 
+    spray_model = spray_roster_list = None
+    spray_seasons = [s for s in DEFAULT_SPRAY_SEASONS if pitch_path(data_dir, season=s, league="mlb").exists()]
+    if spray_seasons:
+        try:
+            spray_model = build_spray_model(data_dir, seasons=spray_seasons, league="mlb")
+            spray_roster_list = spray_roster(spray_model, data_dir)
+        except Exception:
+            logging.exception("Pitch-to-field disabled: failed to build spray tables")
+
     return WebState(
         model=model,
         pitches=pitches,
@@ -199,6 +223,8 @@ def load_web_state(
         data_dir=Path(data_dir),
         season=season,
         location_model=location_model,
+        spray_model=spray_model,
+        spray_roster=spray_roster_list,
     )
 
 
@@ -286,6 +312,68 @@ def create_app(state: WebState) -> FastAPI:
             "locations": location_scores_to_dict(rec.locations[pt]),
         }
 
+    def _spray():
+        if state.spray_model is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Pitch-to-field unavailable: no 2025/2026 MLB pitch parquet found.",
+            )
+        return state.spray_model
+
+    @app.get("/api/field/meta")
+    def api_field_meta() -> dict[str, Any]:
+        return spray_meta(_spray())
+
+    @app.get("/api/field/batters")
+    def api_field_batters(
+        q: str | None = Query(None, description="Name or MLBAM id substring"),
+        limit: int | None = Query(None, ge=1, le=5000),
+    ) -> list[dict[str, Any]]:
+        _spray()
+        return _filter_roster(state.spray_roster or [], q, limit)
+
+    @app.get("/api/field")
+    def api_field(
+        batter_id: int | None = Query(None),
+        batter: str | None = Query(None, description='Batter name, e.g. "Rafael Devers"'),
+        pitch_type: str = Query("SL", description="Pitch type, e.g. SL, FF, CH"),
+        zone: str | None = Query(None, description="Zone id, e.g. down_away (default: all)"),
+        stand: str | None = Query(None, pattern="^[LR]$"),
+    ) -> dict[str, Any]:
+        model = _spray()
+        query = batter_id if batter_id is not None else batter
+        if query is None:
+            raise HTTPException(status_code=400, detail="Provide batter_id or batter.")
+        if zone is not None and zone not in {z["id"] for z in LOCATION_ZONES}:
+            raise HTTPException(status_code=400, detail=f"Unknown zone {zone!r}")
+        try:
+            bid, name = resolve_batter(model, query, state.data_dir)
+            profile = batter_profile(
+                model,
+                bid,
+                stand=stand or default_stand(model, bid),
+                pitch_type=pitch_type,
+                batter_name=name,
+                zones=[zone] if zone else None,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return compact_profile(profile)
+
+    @app.get("/api/field/league")
+    def api_field_league(
+        stand: str = Query("R", pattern="^[LR]$"),
+        pitch_type: str = Query("SL"),
+    ) -> dict[str, Any]:
+        try:
+            return compact_profile(league_profile(_spray(), stand=stand, pitch_type=pitch_type))
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.get("/field")
+    def field_page() -> HTMLResponse:
+        return HTMLResponse(render_field_page(None, nav=LIVE_NAV, active="/field"))
+
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
@@ -357,6 +445,8 @@ def run_select_web(
     url = f"http://{host}:{port}/"
     print("Situational pitch selection server ready")
     print(f"  Open in browser: {url}")
+    if state.spray_model is not None:
+        print(f"  Pitch-to-field: {url}field")
     print(f"  Pitchers: {len(state.pitchers):,}  Batters: {len(state.batters):,}")
     print(f"  {state.data_note}")
     uvicorn.run(app, host=host, port=port, log_level="info")

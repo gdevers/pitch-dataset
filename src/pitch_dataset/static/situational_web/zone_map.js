@@ -82,7 +82,7 @@ function zoneMapSVG(cells, opts) {
     if (!c) return;
     const r = rectFor(id);
     const isBest = best && id === best.zone;
-    out += `<g><title>${tip(c)}</title><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${_zoneColor((c.value - vMin) / span)}" fill-opacity="0.85" stroke="${isBest ? '#111' : '#fff'}" stroke-width="${isBest ? 3 : 1.5}"/></g>`;
+    out += `<g data-zone="${id}"><title>${tip(c)}</title><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${_zoneColor((c.value - vMin) / span)}" fill-opacity="0.85" stroke="${isBest ? '#111' : '#fff'}" stroke-width="${isBest ? 3 : 1.5}"/></g>`;
   });
   ZONE_CHASE_IDS.forEach(id => {
     const c = byZone[id];
@@ -96,7 +96,7 @@ function zoneMapSVG(cells, opts) {
     const c = byZone[id];
     if (!c) return;
     const r = rectFor(id);
-    out += `<g><title>${tip(c)}</title><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${_zoneColor((c.value - vMin) / span)}" stroke="#fff" stroke-width="1"/>${cellText(c, r.x + r.w / 2, r.y + r.h / 2 + 2, false)}</g>`;
+    out += `<g data-zone="${id}"><title>${tip(c)}</title><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${_zoneColor((c.value - vMin) / span)}" stroke="#fff" stroke-width="1"/>${cellText(c, r.x + r.w / 2, r.y + r.h / 2 + 2, false)}</g>`;
   });
   out += `<rect x="${zr.x}" y="${zr.y}" width="${zr.w}" height="${zr.h}" fill="none" stroke="#1a1a1a" stroke-width="2" pointer-events="none"/>`;
   if (best && !ZONE_CHASE_IDS.includes(best.zone)) {
