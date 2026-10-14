@@ -20,6 +20,8 @@ from pitch_dataset.location import (
     load_location_model,
     location_scores_to_dict,
 )
+from pitch_dataset.reports.build import ReportService
+from pitch_dataset.reports.web import register_report_routes
 from pitch_dataset.situational import (
     STANDARD_COUNTS,
     load_situational_model,
@@ -442,6 +444,7 @@ def create_app(state: WebState) -> FastAPI:
         return HTMLResponse(render_field_page(None, nav=LIVE_NAV, active="/field"))
 
     register_zone3d_routes(app, lambda: state.zone3d_store, nav=LIVE_NAV)
+    register_report_routes(app, ReportService(data_dir=state.data_dir, season=state.season), nav=LIVE_NAV)
 
     @app.get("/")
     def index() -> FileResponse:
@@ -518,6 +521,7 @@ def run_select_web(
         print(f"  Pitch-to-field: {url}field")
     if state.zone3d_store is not None:
         print(f"  3D strike zone: {url}zone3d")
+    print(f"  Player reports: {url}reports")
     print(f"  Pitchers: {len(state.pitchers):,}  Batters: {len(state.batters):,}")
     print(f"  {state.data_note}")
     uvicorn.run(app, host=host, port=port, log_level="info")

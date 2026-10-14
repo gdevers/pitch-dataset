@@ -39,3 +39,7 @@ credentials*
 
 # Local automation logs
 logs/
+
+# Generated player / team evaluation reports (portfolio copies live in docs/reports/)
+reports/players/
+reports/teams/

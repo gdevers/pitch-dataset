@@ -10,6 +10,7 @@ from datetime import date
 from pathlib import Path
 
 from pitch_dataset.pipeline import pull_pitches
+from pitch_dataset.reports.cli import add_report_parser, cmd_report
 from pitch_dataset.savant import DEFAULT_MINOR_LEVELS
 from pitch_dataset.seasons import DEFAULT_SEASON, SUPPORTED_SEASONS
 from pitch_dataset.storage import pitch_path, read_pitches
@@ -49,6 +50,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_traded_parser(sub)
     _add_field_parser(sub)
     add_zone3d_parser(sub)
+    add_report_parser(sub)
 
     args = parser.parse_args(argv)
     logging.basicConfig(
@@ -86,6 +88,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_field(args)
     if args.command == "zone3d":
         return cmd_zone3d(args)
+    if args.command == "report":
+        return cmd_report(args)
 
     parser.error(f"Unknown command: {args.command}")
     return 2
