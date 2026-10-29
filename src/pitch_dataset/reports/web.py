@@ -21,15 +21,6 @@ def _nav_html(nav: list[tuple[str, str]], active: str) -> str:
     return f'<nav class="site-nav">{links}</nav>'
 
 
-def portfolio_nav_html() -> str:
-    """Site nav for pages that live in docs/reports/ (one level below the other portfolio pages)."""
-    from pitch_dataset.spray import PORTFOLIO_NAV
-
-    nav = [(href.removeprefix("reports/") if href.startswith("reports/") else "../" + href, label)
-           for href, label in PORTFOLIO_NAV]
-    return _nav_html(nav, "index.html")
-
-
 def register_report_routes(app: Any, service: ReportService, *, nav: list[tuple[str, str]],
                            out_dir: Path | str = "reports/players") -> None:
     """Add ``/reports``, ``/reports/view|pdf/{kind}/{id}`` and ``/api/reports/*`` to a FastAPI app."""

@@ -94,15 +94,14 @@ def _team(svc: ReportService, team: str, out: Path, pdf: bool) -> int:
 
 
 def build_portfolio(svc: ReportService, out: Path, *, pdf: bool = True) -> int:
-    """Regenerate the docs/reports gallery: sample reports + index with the shared site nav."""
-    from pitch_dataset.reports.web import portfolio_nav_html
-
+    """Regenerate the docs/reports gallery as a standalone share surface (no portfolio-site nav)."""
     if out.exists():
         for p in out.glob("*"):
             if p.suffix in {".html", ".pdf", ".json"}:
                 p.unlink()
     out.mkdir(parents=True, exist_ok=True)
-    links = [("index.html", "← All player reports"), ("../index.html", "Portfolio home")]
+    # Stay inside the reports gallery only — no links out to the rest of the portfolio.
+    links = [("index.html", "← All player reports")]
     entries, status = [], 0
     for kind, names in (("pitcher", PORTFOLIO_PITCHERS), ("batter", PORTFOLIO_HITTERS)):
         for name in names:
@@ -117,14 +116,6 @@ def build_portfolio(svc: ReportService, out: Path, *, pdf: bool = True) -> int:
             entries.append(m)
     for p in out.glob("*.json"):
         p.unlink()
-    write_index(out, entries, title="Player evaluation reports", kicker="pitch-dataset · portfolio", lede="",
-                nav_html=portfolio_nav_html(), head_extra=_NAV_CSS)
+    write_index(out, entries, title="Player evaluation reports", kicker="pitch-dataset", lede="")
     print(f"Portfolio: {len(entries)} reports → {out / 'index.html'}")
     return status
-
-
-_NAV_CSS = """<style>
-.site-nav{display:flex;gap:6px;flex-wrap:wrap;max-width:1180px;margin:16px auto 0;padding:0 22px;font-size:13px}
-.site-nav a{color:#1d3f6e;text-decoration:none;padding:4px 10px;border:1px solid #d5dbe3;border-radius:14px;background:#fff}
-.site-nav a.active{background:#1d3f6e;color:#fff;border-color:#1d3f6e}
-</style>"""
