@@ -4,6 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pitch-to-Field · Where contact goes</title>
+  <meta name="description" content="Where contact goes for a hitter × pitch type × zone: spray charts, danger coloring, defense optimizer, matchup compare. Interactive MLB demo." />
+  <meta property="og:title" content="Pitch-to-Field · pitch-dataset" />
+  <meta property="og:description" content="Where contact goes for a hitter × pitch type × zone: spray charts, danger coloring, defense optimizer, matchup compare. Interactive MLB demo." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://gdevers.github.io/pitch-dataset/pitch-to-field.html" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" href="data:," />
   <style>
 :root {
@@ -124,8 +130,8 @@ svg text { font-family: inherit; }
 </head>
 <body>
 <main class="wide">
-  <nav class="site-nav"><a href="index.html">Situational pitch selection</a><a href="pitch-to-field.html" class="active">Pitch-to-field</a><a href="zone-3d.html">3D strike zone</a><a href="reports/index.html">Player reports</a></nav>
-  <p class="portfolio-note">Portfolio demo — 12 hitters × 8 pitch types × 13 zones, precomputed from 252,101 MLB batted balls (2025-03-18 → 2026-10-11). The full roster with live lookups runs locally via <code>uv run pitch-dataset select-web</code> (<code>/field</code>). <a href="https://github.com/gdevers/pitch-dataset">Source on GitHub</a>.</p>
+  <nav class="site-nav"><a href="index.html">Home</a><a href="pitch-selection.html">Pitch selection</a><a href="pitch-to-field.html" class="active">Pitch-to-field</a><a href="zone-3d.html">3D strike zone</a><a href="reports/index.html">Player reports</a><a href="arsenal.html">Arsenal</a><a href="traded-pitchers.html">Trade deadline</a><a href="traded-shape.html">Shape lab</a></nav>
+  <p class="portfolio-note">Interactive demo — 12 hitters × 8 pitch types × 13 zones, precomputed from 252,101 MLB batted balls (2025-03-18 → 2026-10-11). The full roster with live lookups runs locally via <code>uv run pitch-dataset select-web</code> (<code>/field</code>). <a href="https://github.com/gdevers/pitch-dataset">Source on GitHub</a>. <a href="index.html">All portfolio projects</a>.</p>
   <h1>Pitch-to-Field</h1>
   <p class="lede">If I throw <strong>this pitch type</strong> to <strong>this location</strong> against
     <strong>this hitter</strong>, where does his contact go, how dangerous is it, and where should the defense stand?</p>

@@ -4,19 +4,32 @@ Complete pitch-level **MLB** and **MiLB** Statcast data for insights, dashboards
 
 **Default season: 2026** (first-class). Pulls come from Baseball Savant CSV endpoints and land as Parquet under `data/`.
 
-## View the visual
+## Portfolio (GitHub Pages)
 
-Open the static arsenal optimization summary (Cease headline + top-3 ΔxwOBA):
+Each project has its **own shareable URL**. Hub lists them as cards:
 
-- **In a clone:** open [`reports/arsenal_optimization.html`](reports/arsenal_optimization.html) in your browser (double-click or `open reports/arsenal_optimization.html` on macOS).
-- **Traded deadline:** [`reports/traded_pitchers.html`](reports/traded_pitchers.html) — Skubal, Gausman, Soriano, Mize, Peralta pre/post splits.
-- **Shape & pairing lab:** [`reports/traded_pitchers_shape.html`](reports/traded_pitchers_shape.html) — arm angle, spin, extension, effective speed, API break, extended pairing/tunnel (pitcher switcher). Canvas: [`traded-pitchers-shape.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/traded-pitchers-shape.canvas.tsx).
-- **Situational selection (live demo):** [**gdevers.github.io/pitch-dataset/**](https://gdevers.github.io/pitch-dataset/) — interactive pitch-choice game cards (8×8 demo grid). Local copy: [`reports/situational_selection.html`](reports/situational_selection.html). Full roster + live inference: `uv run pitch-dataset select-web`. Canvas: [`situational-selection.canvas.tsx`](/Users/grantdevers/.cursor/projects/Users-grantdevers-Projects-pitch-dataset/canvases/situational-selection.canvas.tsx).
-- **Pitch-to-field (live demo):** [**gdevers.github.io/pitch-dataset/pitch-to-field.html**](https://gdevers.github.io/pitch-dataset/pitch-to-field.html): pick a hitter, pitch type, and one of the 13 batter-relative zones to see where his contact goes on a to-scale field, colored by danger (xwOBA / hit probability), with contact mix, exit velo, whiff context, and how much of the estimate is hitter-specific. Modes: count / pitcher-hand filters, brush a field area to see which zones and pitches send balls there, draggable fielders with a reach model and shift-rule-aware optimizer, pitcher matchup spray, hitter-vs-league / hitter-vs-hitter compare, and a date-ordered replay. 12 precomputed hitters and 10 matchup pitchers; full roster at `/field` in `select-web`.
-- **Player evaluation reports (live gallery):** [**gdevers.github.io/pitch-dataset/reports/**](https://gdevers.github.io/pitch-dataset/reports/) — two-page, print-ready pitcher and hitter evaluations (HTML + PDF) for 6 pitchers and 6 hitters: 20–80 grades, arsenal / swing-decision maps, count strategy, trends with IL overlays, comps, and a data-cited bottom line. Any player: `uv run pitch-dataset report --pitcher "Dylan Cease"` or `/reports` in `select-web`.
-- **On GitHub:** [blob view](https://github.com/gdevers/pitch-dataset/blob/main/reports/arsenal_optimization.html) shows source; GitHub’s HTML preview does **not** run the page JS well. Prefer the live Pages demo above or local open.
+| Piece | Live URL |
+| --- | --- |
+| **Portfolio hub** | https://gdevers.github.io/pitch-dataset/ |
+| Situational pitch selection | https://gdevers.github.io/pitch-dataset/pitch-selection.html |
+| Pitch-to-field (spray / defense / matchup) | https://gdevers.github.io/pitch-dataset/pitch-to-field.html |
+| 3D strike zone | https://gdevers.github.io/pitch-dataset/zone-3d.html |
+| Player evaluation reports | https://gdevers.github.io/pitch-dataset/reports/ |
+| Arsenal optimization (Cease) | https://gdevers.github.io/pitch-dataset/arsenal.html |
+| Trade-deadline pitchers | https://gdevers.github.io/pitch-dataset/traded-pitchers.html |
+| Trade-deadline shape & pairing lab | https://gdevers.github.io/pitch-dataset/traded-shape.html |
 
-Also listed under [`reports/`](reports/README.md).
+LinkedIn-ready captions for the hub and each project: [`LINKEDIN.md`](LINKEDIN.md).
+
+**Local / source copies**
+
+- Situational demo source: [`reports/situational_selection.html`](reports/situational_selection.html) (Pages sync writes `docs/pitch-selection.html`; hub stays at `docs/index.html`).
+- Pitch-to-field / 3D zone: regenerate into `docs/` via `uv run pitch-dataset field --demo` / `zone3d --demo`.
+- Player reports gallery: `uv run pitch-dataset report --portfolio`.
+- Arsenal / traded HTML under [`reports/`](reports/README.md); published mirrors in `docs/`.
+- Full roster + live inference: `uv run pitch-dataset select-web`.
+
+GitHub’s HTML preview does **not** run page JS well — prefer the Pages links above or open the files locally.
 
 ## Layout (portfolio-friendly)
 

@@ -873,11 +873,12 @@ def write_zone3d_html(payload: dict[str, Any], path: Path | str) -> Path:
     n_rows = sum(d["n_rows"] for d in payload["data"].values())
     n_full = sum(d["n_total"] for d in payload["data"].values())
     banner = (
-        f"Portfolio demo — {len(payload['pitchers'])} pitchers, {n_rows:,} sampled pitches drawn in 3D "
+        f"Interactive demo — {len(payload['pitchers'])} pitchers, {n_rows:,} sampled pitches drawn in 3D "
         f"(tunneling and 3D-call stats use their full seasons, {n_full:,} pitches; MLB "
         f"{meta['date_range'][0]} → {meta['date_range'][1]}). Every pitcher, batter and filter runs "
         "live locally via <code>uv run pitch-dataset select-web</code> (<code>/zone3d</code>). "
-        '<a href="https://github.com/gdevers/pitch-dataset">Source on GitHub</a>.'
+        '<a href="https://github.com/gdevers/pitch-dataset">Source on GitHub</a> · '
+        '<a href="index.html">All portfolio projects</a>.'
     )
     page = render_zone3d_page(payload, nav=PORTFOLIO_NAV, active="zone-3d.html", banner=banner)
     path.write_text(page, encoding="utf-8")
@@ -890,6 +891,12 @@ _ZONE3D_PAGE_TEMPLATE = """<!DOCTYPE html>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>3D strike zone · Pitch flight, tunnels &amp; back-of-zone calls</title>
+  <meta name="description" content="3D pitch trajectories through a true strike zone: tunneling, front-plane vs back-of-zone calls. Interactive MLB demo." />
+  <meta property="og:title" content="3D Strike Zone · pitch-dataset" />
+  <meta property="og:description" content="3D pitch trajectories through a true strike zone: tunneling, front-plane vs back-of-zone calls. Interactive MLB demo." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://gdevers.github.io/pitch-dataset/zone-3d.html" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" href="data:," />
   <style>
 {{CSS}}

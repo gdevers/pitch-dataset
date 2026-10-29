@@ -1333,13 +1333,17 @@ def build_demo_payload(
 
 
 PORTFOLIO_NAV = [
-    ("index.html", "Situational pitch selection"),
+    ("index.html", "Home"),
+    ("pitch-selection.html", "Pitch selection"),
     ("pitch-to-field.html", "Pitch-to-field"),
     ("zone-3d.html", "3D strike zone"),
     ("reports/index.html", "Player reports"),
+    ("arsenal.html", "Arsenal"),
+    ("traded-pitchers.html", "Trade deadline"),
+    ("traded-shape.html", "Shape lab"),
 ]
 LIVE_NAV = [
-    ("/", "Situational pitch selection"),
+    ("/", "Pitch selection"),
     ("/field", "Pitch-to-field"),
     ("/zone3d", "3D strike zone"),
     ("/reports", "Player reports"),
@@ -1382,11 +1386,12 @@ def write_field_html(payload: dict[str, Any], path: Path | str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     meta = payload["meta"]
     banner = (
-        f"Portfolio demo — {len(payload['hitters'])} hitters × 8 pitch types × 13 zones, "
+        f"Interactive demo — {len(payload['hitters'])} hitters × 8 pitch types × 13 zones, "
         f"precomputed from {meta['n_bip']:,} MLB batted balls "
         f"({meta['date_range'][0]} → {meta['date_range'][1]}). The full roster with live lookups "
         "runs locally via <code>uv run pitch-dataset select-web</code> (<code>/field</code>). "
-        '<a href="https://github.com/gdevers/pitch-dataset">Source on GitHub</a>.'
+        '<a href="https://github.com/gdevers/pitch-dataset">Source on GitHub</a> · '
+        '<a href="index.html">All portfolio projects</a>.'
     )
     page = render_field_page(payload, nav=PORTFOLIO_NAV, active="pitch-to-field.html", banner=banner)
     path.write_text(page, encoding="utf-8")
@@ -1399,6 +1404,12 @@ _FIELD_PAGE_TEMPLATE = """<!DOCTYPE html>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pitch-to-Field · Where contact goes</title>
+  <meta name="description" content="Where contact goes for a hitter × pitch type × zone: spray charts, danger coloring, defense optimizer, matchup compare. Interactive MLB demo." />
+  <meta property="og:title" content="Pitch-to-Field · pitch-dataset" />
+  <meta property="og:description" content="Where contact goes for a hitter × pitch type × zone: spray charts, danger coloring, defense optimizer, matchup compare. Interactive MLB demo." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://gdevers.github.io/pitch-dataset/pitch-to-field.html" />
+  <meta name="twitter:card" content="summary" />
   <link rel="icon" href="data:," />
   <style>
 {{CSS}}
