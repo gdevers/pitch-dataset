@@ -117,11 +117,7 @@ def build_portfolio(svc: ReportService, out: Path, *, pdf: bool = True) -> int:
             entries.append(m)
     for p in out.glob("*.json"):
         p.unlink()
-    lede = ("Two-page, print-ready evaluations in the style of an MLB R&amp;D / advance-scouting packet: season line, "
-            "20–80 grades from league percentiles, arsenal or swing-decision maps, count strategy, trends with IL "
-            "overlays, comps, and a data-cited bottom line. Each report is generated end to end by "
-            "<code>uv run pitch-dataset report</code> — open the HTML or download the PDF.")
-    write_index(out, entries, title="Player evaluation reports", kicker="pitch-dataset · portfolio", lede=lede,
+    write_index(out, entries, title="Player evaluation reports", kicker="pitch-dataset · portfolio", lede="",
                 nav_html=portfolio_nav_html(), head_extra=_NAV_CSS)
     print(f"Portfolio: {len(entries)} reports → {out / 'index.html'}")
     return status
