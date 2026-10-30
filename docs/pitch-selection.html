@@ -56,24 +56,12 @@
     .loc-list { flex: 1; min-width: 220px; }
     .loc-list ol { margin: 0 0 10px; padding-left: 20px; }
     .loc-list li { margin: 4px 0; }
-
-  .portfolio-note {
-    font-size: 13px; color: var(--muted); margin: 0 0 14px; padding: 10px 12px;
-    background: #eef3fa; border: 1px solid #c8d8ef; border-radius: 6px;
-  }
-  .portfolio-note a { color: var(--accent); }
-  .site-nav { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; font-size: 13px; }
-  .site-nav a { color: var(--accent); text-decoration: none; padding: 4px 10px;
-    border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
-  .site-nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     @media (max-width: 720px) { .hero { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 <body>
 <main>
-  <nav class="site-nav"><a href="index.html">Home</a><a href="pitch-selection.html" class="active">Pitch selection</a><a href="pitch-to-field.html">Pitch-to-field</a><a href="zone-3d.html">3D strike zone</a><a href="reports/index.html">Player reports</a><a href="arsenal.html">Arsenal</a><a href="traded-pitchers.html">Trade deadline</a><a href="traded-shape.html">Shape lab</a></nav>
   <h1>Situational Pitch Selection</h1>
-  <p class="portfolio-note">Interactive demo — 8 pitchers × 8 batters × 12 counts × leverage × platoon (4,608 precomputed matchups). Full MLB roster with live model inference runs locally via <code>uv run pitch-dataset select-web</code>. <a href="https://github.com/gdevers/pitch-dataset">Source on GitHub</a>. <a href="index.html">All portfolio projects</a>.</p>
   <p class="meta">_Situational model scored on MLB 2026 pitches (2026-03-25 → 2026-10-11, n=724,326). Micro pitch-choice (not season usage optimization)._</p>
   <p>Against this batter, in this count, right now — which pitch minimizes damage?</p>
   <div class="controls">
