@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- DEPRECATED (Nov 2026): weekly Monday 4 PM job discontinued after final 2026 season refresh.
+     Kept as optional historical reference. See scripts/README.md to re-enable for a future season. -->
 <plist version="1.0">
 <dict>
   <key>Label</key>
